@@ -1,12 +1,25 @@
-import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  BadRequestException,
+} from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
+import * as bcrypt from 'bcrypt';
 import { UserService } from '../user/user.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
-import * as bcrypt from 'bcrypt';
+import { ActiveUserData } from '../common/interfaces/active-user.interface';
 
 @Injectable()
 export class AuthService {
-  constructor(private readonly userService: UserService) {}
+  private readonly jwtBlacklist = new Set<string>();
+
+  constructor(
+    private readonly userService: UserService,
+    private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
+  ) {}
 
   async register(registerDto: RegisterDto) {
     try {
@@ -24,9 +37,8 @@ export class AuthService {
 
   async login(loginDto: LoginDto) {
     const { email, password } = loginDto;
-    
     const user = await this.userService.findByUsernameOrEmail(email);
-    
+
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
     }
@@ -36,16 +48,57 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const { password: _, ...userData } = user;
-
-    return {
-      message: 'Logged in successfully',
-      user: userData,
-      token: 'dummy-jwt-token-replace-me'
-    };
+    return await this.generateTokens(user);
   }
 
-  async logout() {
-    return { message: 'Logged out successfully' };
+  async refreshTokens(refreshToken: string) {
+    try {
+      const { sub } = await this.jwtService.verifyAsync<
+        Pick<ActiveUserData, 'sub'>
+      >(refreshToken, {
+        secret: this.configService.get('JWT_SECRET') || 'secret',
+      });
+      const user = await this.userService.findOne(sub);
+      return await this.generateTokens(user);
+    } catch {
+      throw new UnauthorizedException();
+    }
+  }
+
+  async logout(token: string) {
+    this.jwtBlacklist.add(token);
+    return { success: true, message: 'Logged out successfully' };
+  }
+
+  isTokenBlacklisted(token: string): boolean {
+    return this.jwtBlacklist.has(token);
+  }
+
+  private async generateTokens(user: any) {
+    const payload: ActiveUserData = {
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+    };
+
+    const [accessToken, refreshToken] = await Promise.all([
+      this.jwtService.signAsync(payload, {
+        expiresIn: '1h',
+      }),
+      this.jwtService.signAsync(
+        { sub: user.id },
+        {
+          expiresIn: '7d',
+        },
+      ),
+    ]);
+
+    const { password, ...userData } = user;
+
+    return {
+      accessToken,
+      refreshToken,
+      user: userData,
+    };
   }
 }
