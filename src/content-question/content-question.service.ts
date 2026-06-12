@@ -4,18 +4,30 @@ import { PaginatedResponse } from '../common/interfaces/api-response.interface';
 import { CreateContentQuestionDto } from './dto/create-content-question.dto';
 import { UpdateContentQuestionDto } from './dto/update-content-question.dto';
 import { FindAllContentQuestionDto } from './dto/find-all-content-question.dto';
+import { ContentQuestion } from './entities/content-question.entity';
 
 @Injectable()
 export class ContentQuestionService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(createContentQuestionDto: CreateContentQuestionDto) {
+  async create(createContentQuestionDto: CreateContentQuestionDto): Promise<ContentQuestion> {
+    const { options, ...questionData } = createContentQuestionDto;
     return this.prisma.contentQuestion.create({
-      data: createContentQuestionDto,
+      data: {
+        ...questionData,
+        options: options
+          ? {
+              create: options,
+            }
+          : undefined,
+      },
+      include: {
+        options: { orderBy: { sortOrder: 'asc' } },
+      },
     });
   }
 
-  async findAll(query: FindAllContentQuestionDto): Promise<PaginatedResponse<any>> {
+  async findAll(query: FindAllContentQuestionDto): Promise<PaginatedResponse<ContentQuestion>> {
     const page = query.page ?? 1;
     const limit = query.limit ?? 10;
     const { search, contentId, type } = query;
@@ -63,7 +75,7 @@ export class ContentQuestionService {
     };
   }
 
-  async findOne(id: string) {
+  async findOne(id: string): Promise<ContentQuestion> {
     const question = await this.prisma.contentQuestion.findUnique({
       where: { id },
       include: {
@@ -79,12 +91,31 @@ export class ContentQuestionService {
     return question;
   }
 
-  async update(id: string, updateContentQuestionDto: UpdateContentQuestionDto) {
+  async update(id: string, updateContentQuestionDto: UpdateContentQuestionDto): Promise<ContentQuestion> {
     await this.findOne(id);
+    const { options, ...questionData } = updateContentQuestionDto;
 
-    return this.prisma.contentQuestion.update({
-      where: { id },
-      data: updateContentQuestionDto,
+    return this.prisma.$transaction(async (tx: any) => {
+      if (options) {
+        await tx.questionOption.deleteMany({
+          where: { questionId: id },
+        });
+      }
+
+      return tx.contentQuestion.update({
+        where: { id },
+        data: {
+          ...questionData,
+          options: options
+            ? {
+                create: options,
+              }
+            : undefined,
+        },
+        include: {
+          options: { orderBy: { sortOrder: 'asc' } },
+        },
+      });
     });
   }
 
