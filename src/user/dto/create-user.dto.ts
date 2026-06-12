@@ -44,4 +44,19 @@ export class CreateUserDto {
   @IsOptional()
   @IsEnum(AccountStatus)
   status?: AccountStatus;
+
+  @IsOptional()
+  @IsString()
+  institutionId?: string;
+
+  @IsOptional()
+  @IsString()
+  parentId?: string;
+
+  @IsOptional()
+  @IsString()
+  gradeId?: string;
+
+  @IsOptional()
+  isPublic?: boolean;
 }
