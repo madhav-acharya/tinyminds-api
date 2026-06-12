@@ -11,6 +11,7 @@ import { LearningModuleModule } from './module/learning-module.module';
 import { GradeModule } from './grade/grade.module';
 import { ContentModule } from './content/content.module';
 import { ContentQuestionModule } from './content-question/content-question.module';
+import { ContentSubmissionModule } from './content-submission/content-submission.module';
 import { LearnerInviteModule } from './learner-invite/learner-invite.module';
 
 @Module({
@@ -26,6 +27,7 @@ import { LearnerInviteModule } from './learner-invite/learner-invite.module';
     UserModule,
     AuthModule,
     InstitutionLearnerModule,
+    ContentSubmissionModule,
   ],
   controllers: [AppController],
   providers: [AppService],

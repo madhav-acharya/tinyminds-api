@@ -9,10 +9,10 @@ Content-Type: application/json
 
 {
   "fullName": "Test User",
-  "email": "test2@example.com",
-  "username": "testuser2",
+  "email": "test22@example.com",
+  "username": "testuser22",
   "password": "password123",
-  "role": "PARENT"
+  "role": "TEACHER"
 }
 
 ###
