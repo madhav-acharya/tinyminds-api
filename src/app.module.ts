@@ -8,6 +8,7 @@ import { CommonModule } from './common/common.module';
 import { InstitutionModule } from './institution/institution.module';
 import { LearningModuleModule } from './module/learning-module.module';
 import { GradeModule } from './grade/grade.module';
+import { ContentModule } from './content/content.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { GradeModule } from './grade/grade.module';
     InstitutionModule,
     GradeModule,
     LearningModuleModule,
+    ContentModule,
     UserModule,
     AuthModule,
   ],
