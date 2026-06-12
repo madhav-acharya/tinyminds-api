@@ -1,0 +1,71 @@
+@baseUrl = http://localhost:3000
+@accessToken = YOUR_ACCESS_TOKEN
+@refreshToken = YOUR_REFRESH_TOKEN
+@userId = YOUR_USER_ID
+
+###
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "fullName": "Test User",
+  "email": "test@example.com",
+  "username": "testuser",
+  "password": "password123",
+  "role": "LEARNER"
+}
+
+###
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "password": "password123"
+}
+
+###
+POST {{baseUrl}}/auth/refresh-tokens
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+
+###
+POST {{baseUrl}}/auth/logout
+Authorization: Bearer {{accessToken}}
+
+###
+POST {{baseUrl}}/user
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "fullName": "Admin User",
+  "email": "admin@example.com",
+  "username": "adminuser",
+  "password": "adminpassword123",
+  "role": "ADMIN"
+}
+
+###
+GET {{baseUrl}}/user
+Authorization: Bearer {{accessToken}}
+
+###
+GET {{baseUrl}}/user/{{userId}}
+Authorization: Bearer {{accessToken}}
+
+###
+PATCH {{baseUrl}}/user/{{userId}}
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "fullName": "Updated Name"
+}
+
+###
+DELETE {{baseUrl}}/user/{{userId}}
+Authorization: Bearer {{accessToken}}

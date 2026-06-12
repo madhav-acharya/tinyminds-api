@@ -1,0 +1,44 @@
+@baseUrl = http://localhost:3000
+@accessToken = YOUR_ACCESS_TOKEN
+@institutionId = YOUR_INSTITUTION_ID
+
+###
+POST {{baseUrl}}/institution
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Tiny Minds Academy",
+  "code": "TMA001",
+  "address": "123 Learning Lane",
+  "status": "ACTIVE"
+}
+
+###
+GET {{baseUrl}}/institution
+Authorization: Bearer {{accessToken}}
+
+###
+GET {{baseUrl}}/institution?search=Tiny
+Authorization: Bearer {{accessToken}}
+
+###
+GET {{baseUrl}}/institution?status=ACTIVE&page=1&limit=5
+Authorization: Bearer {{accessToken}}
+
+###
+GET {{baseUrl}}/institution/{{institutionId}}
+Authorization: Bearer {{accessToken}}
+
+###
+PATCH {{baseUrl}}/institution/{{institutionId}}
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "address": "456 Knowledge St"
+}
+
+###
+DELETE {{baseUrl}}/institution/{{institutionId}}
+Authorization: Bearer {{accessToken}}
