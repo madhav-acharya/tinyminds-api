@@ -24,12 +24,11 @@ export class UserService {
           data: { userId: user.id, institutionId },
         });
       } else if (user.role === UserRole.TEACHER) {
-        if (!institutionId) {
-          throw new BadRequestException('Teacher must have an institutionId');
+        if (institutionId) {
+          await tx.teacherProfile.create({
+            data: { userId: user.id, institutionId },
+          });
         }
-        await tx.teacherProfile.create({
-          data: { userId: user.id, institutionId },
-        });
       } else if (user.role === UserRole.PARENT) {
         await tx.parentProfile.create({
           data: { userId: user.id },

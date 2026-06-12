@@ -33,8 +33,7 @@ export class AuthService {
         ...registerDto,
         password: hashedPassword,
       });
-      const { password, ...result } = user;
-      return result;
+      return await this.generateTokens(user);
     } catch (error) {
       if (error instanceof BadRequestException) throw error;
       throw new BadRequestException('User registration failed.');
