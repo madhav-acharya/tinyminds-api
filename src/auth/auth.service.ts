@@ -9,6 +9,7 @@ import * as bcrypt from 'bcrypt';
 import { UserService } from '../user/user.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { UserRole } from '../common/enums/user-role.enum';
 import { ActiveUserData } from '../common/interfaces/active-user.interface';
 
 @Injectable()
@@ -22,6 +23,10 @@ export class AuthService {
   ) {}
 
   async register(registerDto: RegisterDto) {
+    if (registerDto.role !== UserRole.TEACHER && registerDto.role !== UserRole.PARENT) {
+      throw new BadRequestException('Role not allowed for self-registration');
+    }
+
     try {
       const hashedPassword = await bcrypt.hash(registerDto.password, 10);
       const user = await this.userService.create({
@@ -30,6 +35,7 @@ export class AuthService {
       });
       return await this.generateTokens(user);
     } catch (error) {
+      if (error instanceof BadRequestException) throw error;
       throw new BadRequestException('User registration failed.');
     }
   }
