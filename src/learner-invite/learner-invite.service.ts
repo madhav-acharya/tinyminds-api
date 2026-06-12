@@ -85,4 +85,21 @@ export class LearnerInviteService {
       return user;
     });
   }
+
+  async rejectInvite(inviteId: string) {
+    const invite = await this.prisma.learnerInvite.findUnique({
+      where: { id: inviteId },
+    });
+
+    if (!invite || invite.status !== InstitutionLearnerStatus.INVITED) {
+      throw new NotFoundException('Invitation not found or already processed');
+    }
+
+    return this.prisma.learnerInvite.update({
+      where: { id: inviteId },
+      data: {
+        status: InstitutionLearnerStatus.REJECTED,
+      },
+    });
+  }
 }

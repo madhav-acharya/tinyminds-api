@@ -1,0 +1,79 @@
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { PrismaService } from '../prisma.service';
+import { CreateTeacherInviteDto } from './dto/create-teacher-invite.dto';
+import { AcceptTeacherInviteDto } from './dto/accept-teacher-invite.dto';
+import { UserRole } from '../common/enums/user-role.enum';
+import { InstitutionLearnerStatus } from '@prisma/client';
+import * as bcrypt from 'bcrypt';
+
+@Injectable()
+export class TeacherInviteService {
+  constructor(private readonly prisma: PrismaService) {}
+
+  async createInvite(createDto: CreateTeacherInviteDto) {
+    return this.prisma.teacherInvite.create({
+      data: {
+        ...createDto,
+        status: InstitutionLearnerStatus.INVITED,
+      },
+    });
+  }
+
+  async acceptInvite(inviteId: string, acceptDto: AcceptTeacherInviteDto) {
+    const invite = await this.prisma.teacherInvite.findUnique({
+      where: { id: inviteId },
+    });
+
+    if (!invite || invite.status !== InstitutionLearnerStatus.INVITED) {
+      throw new NotFoundException('Invitation not found or already processed');
+    }
+
+    const hashedPassword = await bcrypt.hash(acceptDto.password, 10);
+
+    return this.prisma.$transaction(async (tx: any) => {
+      const user = await tx.user.create({
+        data: {
+          fullName: invite.fullName,
+          email: invite.email,
+          username: acceptDto.username,
+          password: hashedPassword,
+          role: UserRole.TEACHER,
+        },
+      });
+
+      await tx.teacherProfile.create({
+        data: {
+          userId: user.id,
+          institutionId: invite.institutionId,
+        },
+      });
+
+      await tx.teacherInvite.update({
+        where: { id: inviteId },
+        data: {
+          status: InstitutionLearnerStatus.ACCEPTED,
+          acceptedAt: new Date(),
+        },
+      });
+
+      return user;
+    });
+  }
+
+  async rejectInvite(inviteId: string) {
+    const invite = await this.prisma.teacherInvite.findUnique({
+      where: { id: inviteId },
+    });
+
+    if (!invite || invite.status !== InstitutionLearnerStatus.INVITED) {
+      throw new NotFoundException('Invitation not found or already processed');
+    }
+
+    return this.prisma.teacherInvite.update({
+      where: { id: inviteId },
+      data: {
+        status: InstitutionLearnerStatus.REJECTED,
+      },
+    });
+  }
+}

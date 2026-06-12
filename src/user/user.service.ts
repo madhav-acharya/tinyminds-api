@@ -12,11 +12,11 @@ export class UserService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(createUserDto: CreateUserDto) {
-    const { institutionId, parentId, gradeId, isPublic, ...userData } = createUserDto;
+    const { institutionId, parentId, gradeId, isPublic, institution: institutionData, ...userData } = createUserDto;
 
     return this.prisma.$transaction(async (tx: any) => {
       const user = await tx.user.create({
-        data: userData,
+        data: userData as any,
       });
 
       if (user.role === UserRole.SUPER_ADMIN || user.role === UserRole.ADMIN) {
@@ -40,6 +40,26 @@ export class UserService {
         }
         await tx.learnerProfile.create({
           data: { userId: user.id, parentId, gradeId, isPublic: isPublic ?? true },
+        });
+      } else if (user.role === UserRole.OWNER) {
+        let actualInstitutionId = institutionId;
+
+        if (institutionData) {
+          const newInstitution = await tx.institution.create({
+            data: institutionData,
+          });
+          actualInstitutionId = newInstitution.id;
+        }
+
+        if (!actualInstitutionId) {
+          throw new BadRequestException('Owner must have an institutionId or institution details');
+        }
+
+        await tx.ownerProfile.create({
+          data: { 
+            userId: user.id, 
+            institutionId: actualInstitutionId 
+          },
         });
       }
 
@@ -106,7 +126,7 @@ export class UserService {
     await this.findOne(id);
     return this.prisma.user.update({
       where: { id },
-      data: updateUserDto,
+      data: updateUserDto as any,
     });
   }
 

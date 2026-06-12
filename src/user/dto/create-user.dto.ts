@@ -1,4 +1,5 @@
-import { AccountStatus, UserRole } from '@prisma/client';
+import { AccountStatus } from '@prisma/client';
+import { UserRole } from 'src/common/enums/user-role.enum';
 import {
   IsEmail,
   IsEnum,
@@ -10,6 +11,9 @@ import {
 } from 'class-validator';
 import { CapitalizeTransformer } from 'src/common/transformers/capitalize.transformer';
 import { IsUnique } from 'src/common/validators/is-unique-validator';
+import { CreateInstitutionDto } from 'src/institution/dto/create-institution.dto';
+import { ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class CreateUserDto {
   @IsNotEmpty()
@@ -59,4 +63,9 @@ export class CreateUserDto {
 
   @IsOptional()
   isPublic?: boolean;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => CreateInstitutionDto)
+  institution?: CreateInstitutionDto;
 }

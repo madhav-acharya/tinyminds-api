@@ -15,6 +15,7 @@ datasource db {
 enum UserRole {
   SUPER_ADMIN
   ADMIN
+  OWNER
   TEACHER
   PARENT
   LEARNER
@@ -104,6 +105,7 @@ model User {
   teacherProfile TeacherProfile?
   parentProfile  ParentProfile?
   learnerProfile LearnerProfile?
+  ownerProfile   OwnerProfile?
 
   @@index([role], map: "idx_users_role")
   @@index([status], map: "idx_users_status")
@@ -135,6 +137,19 @@ model TeacherProfile {
 
   @@index([institutionId], map: "idx_teacher_profiles_institution_id")
   @@map("teacher_profiles")
+  @@schema("auth")
+}
+
+model OwnerProfile {
+  id            String @id @default(uuid()) @map("id")
+  userId        String @unique @map("user_id")
+  institutionId String @map("institution_id")
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+
+  @@index([institutionId], map: "idx_owner_profiles_institution_id")
+  @@map("owner_profiles")
   @@schema("auth")
 }
 
@@ -182,10 +197,12 @@ model Institution {
 
   admins   AdminProfile[]
   teachers TeacherProfile[]
+  owners   OwnerProfile[]
   learners InstitutionLearner[]
   grades   Grade[]
   modules  Module[]
   invites  LearnerInvite[]
+  teacherInvites TeacherInvite[]
 
   @@index([status], map: "idx_institutions_status")
   @@map("institutions")
@@ -233,6 +250,26 @@ model LearnerInvite {
   @@index([learnerUsername], map: "idx_learner_invites_learner_username")
   @@index([status], map: "idx_learner_invites_status")
   @@map("learner_invites")
+  @@schema("institution")
+}
+
+model TeacherInvite {
+  id            String                   @id @default(uuid()) @map("id")
+  institutionId String                   @map("institution_id")
+  email         String                   @map("email")
+  fullName      String                   @map("full_name")
+  status        InstitutionLearnerStatus @default(INVITED) @map("status")
+  expiresAt     DateTime?                @map("expires_at")
+  acceptedAt    DateTime?                @map("accepted_at")
+  createdAt     DateTime                 @default(now()) @map("created_at")
+
+  institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+
+  @@unique([institutionId, email], map: "uq_teacher_invites_institution_id_email")
+  @@index([institutionId], map: "idx_teacher_invites_institution_id")
+  @@index([email], map: "idx_teacher_invites_email")
+  @@index([status], map: "idx_teacher_invites_status")
+  @@map("teacher_invites")
   @@schema("institution")
 }
 
