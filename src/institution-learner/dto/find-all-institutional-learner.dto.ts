@@ -23,6 +23,10 @@ export class FindAllInstitutionLearnersDto {
   status?: InstitutionLearnerStatus;
 
   @IsOptional()
+  @IsString()
+  search?: string;
+
+  @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)

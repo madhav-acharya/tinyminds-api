@@ -12,6 +12,7 @@ import { InstitutionLearnerService } from './institution-learner.service';
 import { CreateInstitutionLearnerDto } from './dto/create-institution-learner.dto';
 import { UpdateInstitutionLearnerDto } from './dto/update-institution-learner.dto';
 import { FindAllInstitutionLearnersDto } from './dto/find-all-institutional-learner.dto';
+import { InstitutionLearner } from './entities/institution-learner.entity';
 
 @Controller('institution-learner')
 export class InstitutionLearnerController {
@@ -20,7 +21,7 @@ export class InstitutionLearnerController {
   ) {}
 
   @Post()
-  create(@Body() dto: CreateInstitutionLearnerDto) {
+  create(@Body() dto: CreateInstitutionLearnerDto): Promise<InstitutionLearner> {
     return this.institutionLearnerService.create(dto);
   }
 
@@ -30,7 +31,7 @@ export class InstitutionLearnerController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
+  findOne(@Param('id') id: string): Promise<InstitutionLearner> {
     return this.institutionLearnerService.findOne(id);
   }
 
