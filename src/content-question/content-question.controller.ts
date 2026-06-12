@@ -17,6 +17,7 @@ import { AuthGuard } from '../common/guards/auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { UserRole } from '../common/enums/user-role.enum';
+import { ContentQuestion } from './entities/content-question.entity';
 
 @UseGuards(AuthGuard, RolesGuard)
 @Controller('content-question')
@@ -27,7 +28,7 @@ export class ContentQuestionController {
 
   @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TEACHER)
   @Post()
-  create(@Body() createContentQuestionDto: CreateContentQuestionDto) {
+  create(@Body() createContentQuestionDto: CreateContentQuestionDto): Promise<ContentQuestion> {
     return this.contentQuestionService.create(createContentQuestionDto);
   }
 
@@ -37,7 +38,7 @@ export class ContentQuestionController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
+  findOne(@Param('id') id: string): Promise<ContentQuestion> {
     return this.contentQuestionService.findOne(id);
   }
 
@@ -46,7 +47,7 @@ export class ContentQuestionController {
   update(
     @Param('id') id: string,
     @Body() updateContentQuestionDto: UpdateContentQuestionDto,
-  ) {
+  ): Promise<ContentQuestion> {
     return this.contentQuestionService.update(id, updateContentQuestionDto);
   }
 

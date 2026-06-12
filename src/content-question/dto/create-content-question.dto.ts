@@ -7,7 +7,11 @@ import {
   IsString,
   IsUUID,
   Min,
+  IsArray,
+  ValidateNested,
 } from 'class-validator';
+import { Type } from 'class-transformer';
+import { CreateQuestionOptionDto } from './create-question-option.dto';
 
 export class CreateContentQuestionDto {
   @IsNotEmpty()
@@ -49,4 +53,10 @@ export class CreateContentQuestionDto {
 
   @IsOptional()
   answerKey?: any;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateQuestionOptionDto)
+  options?: CreateQuestionOptionDto[];
 }
