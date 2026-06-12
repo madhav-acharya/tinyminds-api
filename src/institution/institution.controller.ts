@@ -1,34 +1,56 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { InstitutionService } from './institution.service';
 import { CreateInstitutionDto } from './dto/create-institution.dto';
 import { UpdateInstitutionDto } from './dto/update-institution.dto';
+import { FindAllInstitutionDto } from './dto/find-all-institution.dto';
+import { AuthGuard } from '../common/guards/auth.guard';
+import { RolesGuard } from '../common/guards/roles.guard';
+import { Roles } from '../common/decorators/roles.decorator';
+import { UserRole } from '../common/enums/user-role.enum';
 
+@UseGuards(AuthGuard, RolesGuard)
 @Controller('institution')
 export class InstitutionController {
   constructor(private readonly institutionService: InstitutionService) {}
 
+  @Roles(UserRole.SUPER_ADMIN)
   @Post()
   create(@Body() createInstitutionDto: CreateInstitutionDto) {
     return this.institutionService.create(createInstitutionDto);
   }
 
   @Get()
-  findAll() {
-    return this.institutionService.findAll();
+  findAll(@Query() query: FindAllInstitutionDto) {
+    return this.institutionService.findAll(query);
   }
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.institutionService.findOne(+id);
+    return this.institutionService.findOne(id);
   }
 
+  @Roles(UserRole.SUPER_ADMIN)
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateInstitutionDto: UpdateInstitutionDto) {
-    return this.institutionService.update(+id, updateInstitutionDto);
+  update(
+    @Param('id') id: string,
+    @Body() updateInstitutionDto: UpdateInstitutionDto,
+  ) {
+    return this.institutionService.update(id, updateInstitutionDto);
   }
 
+  @Roles(UserRole.SUPER_ADMIN)
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.institutionService.remove(+id);
+    return this.institutionService.remove(id);
   }
 }
