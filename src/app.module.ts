@@ -6,12 +6,14 @@ import { UserModule } from './user/user.module';
 import { AuthModule } from './auth/auth.module';
 import { CommonModule } from './common/common.module';
 import { InstitutionModule } from './institution/institution.module';
+import { LearningModuleModule } from './module/learning-module.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     CommonModule,
     InstitutionModule,
+    LearningModuleModule,
     UserModule,
     AuthModule,
   ],
