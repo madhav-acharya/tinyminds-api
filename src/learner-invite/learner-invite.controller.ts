@@ -43,4 +43,10 @@ export class LearnerInviteController {
   ) {
     return this.learnerInviteService.acceptInvite(id, acceptDto);
   }
+
+  @Roles(UserRole.PARENT)
+  @Post(':id/reject')
+  rejectInvite(@Param('id') id: string) {
+    return this.learnerInviteService.rejectInvite(id);
+  }
 }
