@@ -9,4 +9,393 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  schemas  = ["auth", "institution", "learning", "content"]
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  TEACHER
+  PARENT
+  LEARNER
+
+  @@schema("auth")
+}
+
+enum AccountStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+
+  @@schema("auth")
+}
+
+enum InstitutionLearnerStatus {
+  INVITED
+  ACCEPTED
+  REJECTED
+  REMOVED
+
+  @@schema("institution")
+}
+
+enum ModuleScope {
+  PUBLIC
+  INSTITUTION
+
+  @@schema("learning")
+}
+
+enum ContentType {
+  REGULAR
+  MISSION
+  ASSIGNMENT
+
+  @@schema("content")
+}
+
+enum ContentStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+
+  @@schema("content")
+}
+
+enum QuestionType {
+  SINGLE_CHOICE
+  MULTIPLE_CHOICE
+  IMAGE_TAP
+  ANIMATION_TAP
+  TRUE_FALSE
+  TEXT_INPUT
+  FILL_BLANK
+  MATCHING
+  ORDERING
+  AUDIO_CHOICE
+  VIDEO_CHOICE
+
+  @@schema("content")
+}
+
+enum SubmissionStatus {
+  PENDING
+  IN_PROGRESS
+  SUBMITTED
+  PASSED
+  FAILED
+  MISSED
+
+  @@schema("content")
+}
+
+model User {
+  id        String        @id @default(uuid()) @map("id")
+  fullName  String        @map("full_name")
+  email     String?       @unique @map("email")
+  username  String?       @unique @map("username")
+  password  String        @map("password")
+  role      UserRole      @map("role")
+  status    AccountStatus @default(ACTIVE) @map("status")
+  createdAt DateTime      @default(now()) @map("created_at")
+  updatedAt DateTime      @updatedAt @map("updated_at")
+
+  adminProfile   AdminProfile?
+  teacherProfile TeacherProfile?
+  parentProfile  ParentProfile?
+  learnerProfile LearnerProfile?
+
+  @@index([role], map: "idx_users_role")
+  @@index([status], map: "idx_users_status")
+  @@map("users")
+  @@schema("auth")
+}
+
+model AdminProfile {
+  id            String  @id @default(uuid()) @map("id")
+  userId        String  @unique @map("user_id")
+  institutionId String? @map("institution_id")
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  institution Institution? @relation(fields: [institutionId], references: [id], onDelete: SetNull)
+
+  @@index([institutionId], map: "idx_admin_profiles_institution_id")
+  @@map("admin_profiles")
+  @@schema("auth")
+}
+
+model TeacherProfile {
+  id            String @id @default(uuid()) @map("id")
+  userId        String @unique @map("user_id")
+  institutionId String @map("institution_id")
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  institution Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  contents    Content[]
+
+  @@index([institutionId], map: "idx_teacher_profiles_institution_id")
+  @@map("teacher_profiles")
+  @@schema("auth")
+}
+
+model ParentProfile {
+  id     String @id @default(uuid()) @map("id")
+  userId String @unique @map("user_id")
+
+  user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  children LearnerProfile[]
+  invites  LearnerInvite[]
+
+  @@map("parent_profiles")
+  @@schema("auth")
+}
+
+model LearnerProfile {
+  id       String  @id @default(uuid()) @map("id")
+  userId   String  @unique @map("user_id")
+  parentId String  @map("parent_id")
+  gradeId  String? @map("grade_id")
+  isPublic Boolean @default(true) @map("is_public")
+
+  user         User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent       ParentProfile        @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  grade        Grade?               @relation(fields: [gradeId], references: [id], onDelete: SetNull)
+  institutions InstitutionLearner[]
+  submissions  ContentSubmission[]
+  answers      QuestionAnswer[]
+
+  @@index([parentId], map: "idx_learner_profiles_parent_id")
+  @@index([gradeId], map: "idx_learner_profiles_grade_id")
+  @@index([isPublic], map: "idx_learner_profiles_is_public")
+  @@map("learner_profiles")
+  @@schema("auth")
+}
+
+model Institution {
+  id        String        @id @default(uuid()) @map("id")
+  name      String        @map("name")
+  code      String        @unique @map("code")
+  address   String?       @map("address")
+  status    AccountStatus @default(ACTIVE) @map("status")
+  createdAt DateTime      @default(now()) @map("created_at")
+  updatedAt DateTime      @updatedAt @map("updated_at")
+
+  admins   AdminProfile[]
+  teachers TeacherProfile[]
+  learners InstitutionLearner[]
+  grades   Grade[]
+  modules  Module[]
+  invites  LearnerInvite[]
+
+  @@index([status], map: "idx_institutions_status")
+  @@map("institutions")
+  @@schema("institution")
+}
+
+model InstitutionLearner {
+  id            String                   @id @default(uuid()) @map("id")
+  institutionId String                   @map("institution_id")
+  learnerId     String                   @map("learner_id")
+  gradeId       String?                  @map("grade_id")
+  status        InstitutionLearnerStatus @default(INVITED) @map("status")
+  acceptedAt    DateTime?                @map("accepted_at")
+  createdAt     DateTime                 @default(now()) @map("created_at")
+
+  institution Institution    @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  learner     LearnerProfile @relation(fields: [learnerId], references: [id], onDelete: Cascade)
+  grade       Grade?         @relation(fields: [gradeId], references: [id], onDelete: SetNull)
+
+  @@unique([institutionId, learnerId], map: "uq_institution_learners_institution_id_learner_id")
+  @@index([learnerId], map: "idx_institution_learners_learner_id")
+  @@index([gradeId], map: "idx_institution_learners_grade_id")
+  @@index([status], map: "idx_institution_learners_status")
+  @@map("institution_learners")
+  @@schema("institution")
+}
+
+model LearnerInvite {
+  id              String                   @id @default(uuid()) @map("id")
+  institutionId   String                   @map("institution_id")
+  learnerUsername String                   @map("learner_username")
+  parentId        String                   @map("parent_id")
+  gradeId         String?                  @map("grade_id")
+  status          InstitutionLearnerStatus @default(INVITED) @map("status")
+  expiresAt       DateTime?                @map("expires_at")
+  acceptedAt      DateTime?                @map("accepted_at")
+  createdAt       DateTime                 @default(now()) @map("created_at")
+
+  institution Institution   @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  parent      ParentProfile @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  grade       Grade?        @relation(fields: [gradeId], references: [id], onDelete: SetNull)
+
+  @@index([institutionId], map: "idx_learner_invites_institution_id")
+  @@index([parentId], map: "idx_learner_invites_parent_id")
+  @@index([learnerUsername], map: "idx_learner_invites_learner_username")
+  @@index([status], map: "idx_learner_invites_status")
+  @@map("learner_invites")
+  @@schema("institution")
+}
+
+model Grade {
+  id            String  @id @default(uuid()) @map("id")
+  institutionId String? @map("institution_id")
+  name          String  @map("name")
+  sortOrder     Int     @default(0) @map("sort_order")
+
+  institution         Institution?         @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  learners            LearnerProfile[]
+  institutionLearners InstitutionLearner[]
+  invites             LearnerInvite[]
+  modules             Module[]
+
+  @@unique([institutionId, name], map: "uq_grades_institution_id_name")
+  @@index([institutionId], map: "idx_grades_institution_id")
+  @@index([sortOrder], map: "idx_grades_sort_order")
+  @@map("grades")
+  @@schema("learning")
+}
+
+model Module {
+  id            String      @id @default(uuid()) @map("id")
+  institutionId String?     @map("institution_id")
+  gradeId       String?     @map("grade_id")
+  title         String      @map("title")
+  description   String?     @map("description")
+  scope         ModuleScope @default(PUBLIC) @map("scope")
+  isPublished   Boolean     @default(false) @map("is_published")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+
+  institution Institution? @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  grade       Grade?       @relation(fields: [gradeId], references: [id], onDelete: SetNull)
+  contents    Content[]
+
+  @@index([institutionId], map: "idx_modules_institution_id")
+  @@index([gradeId], map: "idx_modules_grade_id")
+  @@index([scope], map: "idx_modules_scope")
+  @@index([isPublished], map: "idx_modules_is_published")
+  @@map("modules")
+  @@schema("learning")
+}
+
+model Content {
+  id          String        @id @default(uuid()) @map("id")
+  moduleId    String        @map("module_id")
+  teacherId   String?       @map("teacher_id")
+  title       String        @map("title")
+  description String?       @map("description")
+  body        String?       @map("body")
+  mediaUrl    String?       @map("media_url")
+  type        ContentType   @default(REGULAR) @map("type")
+  status      ContentStatus @default(DRAFT) @map("status")
+  startDate   DateTime?     @map("start_date")
+  endDate     DateTime?     @map("end_date")
+  totalMarks  Int           @default(0) @map("total_marks")
+  durationSec Int?          @map("duration_sec")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  module      Module              @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  teacher     TeacherProfile?     @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+  questions   ContentQuestion[]
+  submissions ContentSubmission[]
+
+  @@index([moduleId], map: "idx_contents_module_id")
+  @@index([teacherId], map: "idx_contents_teacher_id")
+  @@index([type], map: "idx_contents_type")
+  @@index([status], map: "idx_contents_status")
+  @@index([startDate, endDate], map: "idx_contents_start_date_end_date")
+  @@map("contents")
+  @@schema("content")
+}
+
+model ContentQuestion {
+  id           String       @id @default(uuid()) @map("id")
+  contentId    String       @map("content_id")
+  type         QuestionType @map("type")
+  title        String       @map("title")
+  instruction  String?      @map("instruction")
+  mediaUrl     String?      @map("media_url")
+  animationUrl String?      @map("animation_url")
+  points       Int          @default(1) @map("points")
+  sortOrder    Int          @default(0) @map("sort_order")
+  config       Json?        @map("config")
+  answerKey    Json?        @map("answer_key")
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+
+  content Content          @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  options QuestionOption[]
+  answers QuestionAnswer[]
+
+  @@index([contentId], map: "idx_content_questions_content_id")
+  @@index([type], map: "idx_content_questions_type")
+  @@index([sortOrder], map: "idx_content_questions_sort_order")
+  @@map("content_questions")
+  @@schema("content")
+}
+
+model QuestionOption {
+  id         String  @id @default(uuid()) @map("id")
+  questionId String  @map("question_id")
+  text       String? @map("text")
+  mediaUrl   String? @map("media_url")
+  isCorrect  Boolean @default(false) @map("is_correct")
+  sortOrder  Int     @default(0) @map("sort_order")
+
+  question ContentQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@index([questionId], map: "idx_question_options_question_id")
+  @@index([isCorrect], map: "idx_question_options_is_correct")
+  @@index([sortOrder], map: "idx_question_options_sort_order")
+  @@map("question_options")
+  @@schema("content")
+}
+
+model ContentSubmission {
+  id             String           @id @default(uuid()) @map("id")
+  contentId      String           @map("content_id")
+  learnerId      String           @map("learner_id")
+  status         SubmissionStatus @default(PENDING) @map("status")
+  score          Int              @default(0) @map("score")
+  totalMarks     Int              @default(0) @map("total_marks")
+  correctCount   Int              @default(0) @map("correct_count")
+  incorrectCount Int              @default(0) @map("incorrect_count")
+  startedAt      DateTime?        @map("started_at")
+  submittedAt    DateTime?        @map("submitted_at")
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @updatedAt @map("updated_at")
+
+  content Content          @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  learner LearnerProfile   @relation(fields: [learnerId], references: [id], onDelete: Cascade)
+  answers QuestionAnswer[]
+
+  @@unique([contentId, learnerId], map: "uq_content_submissions_content_id_learner_id")
+  @@index([learnerId], map: "idx_content_submissions_learner_id")
+  @@index([status], map: "idx_content_submissions_status")
+  @@index([submittedAt], map: "idx_content_submissions_submitted_at")
+  @@map("content_submissions")
+  @@schema("content")
+}
+
+model QuestionAnswer {
+  id           String   @id @default(uuid()) @map("id")
+  submissionId String   @map("submission_id")
+  questionId   String   @map("question_id")
+  learnerId    String   @map("learner_id")
+  answer       Json?    @map("answer")
+  isCorrect    Boolean  @default(false) @map("is_correct")
+  pointsEarned Int      @default(0) @map("points_earned")
+  answeredAt   DateTime @default(now()) @map("answered_at")
+
+  submission ContentSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  question   ContentQuestion   @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  learner    LearnerProfile    @relation(fields: [learnerId], references: [id], onDelete: Cascade)
+
+  @@unique([submissionId, questionId], map: "uq_question_answers_submission_id_question_id")
+  @@index([questionId], map: "idx_question_answers_question_id")
+  @@index([learnerId], map: "idx_question_answers_learner_id")
+  @@index([isCorrect], map: "idx_question_answers_is_correct")
+  @@map("question_answers")
+  @@schema("content")
 }
