@@ -1,9 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { FindAllUserDto } from './dto/find-all-user.dto';
+import { FindAllUsersDto } from './dto/find-all-user.dto';
 import { PrismaService } from '../prisma/prisma.service';
-import { Prisma } from '@prisma/client';
+import { PaginatedResponse } from '../common/interfaces/api-response.interface';
 
 @Injectable()
 export class UserService {
@@ -15,7 +16,7 @@ export class UserService {
     });
   }
 
-  async findAll(query: FindAllUserDto) {
+  async findAll(query: FindAllUsersDto): Promise<PaginatedResponse<any>> {
     const { page = 1, limit = 10, search } = query;
     const skip = (page - 1) * limit;
 
@@ -53,10 +54,7 @@ export class UserService {
   async findByUsernameOrEmail(usernameOrEmail: string) {
     return this.prisma.user.findFirst({
       where: {
-        OR: [
-          { email: usernameOrEmail },
-          { username: usernameOrEmail },
-        ],
+        OR: [{ email: usernameOrEmail }, { username: usernameOrEmail }],
       },
     });
   }
