@@ -7,12 +7,20 @@ import { AuthModule } from './auth/auth.module';
 import { CommonModule } from './common/common.module';
 import { InstitutionModule } from './institution/institution.module';
 import { InstitutionLearnerModule } from './institution-learner/institution-learner.module';
+import { LearningModuleModule } from './module/learning-module.module';
+import { GradeModule } from './grade/grade.module';
+import { ContentModule } from './content/content.module';
+import { ContentQuestionModule } from './content-question/content-question.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     CommonModule,
     InstitutionModule,
+    GradeModule,
+    LearningModuleModule,
+    ContentModule,
+    ContentQuestionModule,
     UserModule,
     AuthModule,
     InstitutionLearnerModule,
