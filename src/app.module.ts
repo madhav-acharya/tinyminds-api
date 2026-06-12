@@ -9,6 +9,7 @@ import { InstitutionModule } from './institution/institution.module';
 import { LearningModuleModule } from './module/learning-module.module';
 import { GradeModule } from './grade/grade.module';
 import { ContentModule } from './content/content.module';
+import { ContentQuestionModule } from './content-question/content-question.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { ContentModule } from './content/content.module';
     GradeModule,
     LearningModuleModule,
     ContentModule,
+    ContentQuestionModule,
     UserModule,
     AuthModule,
   ],
