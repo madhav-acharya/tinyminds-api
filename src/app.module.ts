@@ -11,6 +11,7 @@ import { LearningModuleModule } from './module/learning-module.module';
 import { GradeModule } from './grade/grade.module';
 import { ContentModule } from './content/content.module';
 import { ContentQuestionModule } from './content-question/content-question.module';
+import { LearnerInviteModule } from './learner-invite/learner-invite.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { ContentQuestionModule } from './content-question/content-question.modul
     LearningModuleModule,
     ContentModule,
     ContentQuestionModule,
+    LearnerInviteModule,
     UserModule,
     AuthModule,
     InstitutionLearnerModule,
