@@ -21,14 +21,14 @@ export class CreateUserDto {
 
   @IsOptional()
   @IsEmail()
-  @IsUnique('users', 'email')
+  @IsUnique('user', 'email')
   email?: string;
 
   @IsOptional()
   @IsString()
   @MinLength(3)
   @MaxLength(30)
-  @IsUnique('users', 'username')
+  @IsUnique('user', 'username')
   username?: string;
 
   @IsNotEmpty()

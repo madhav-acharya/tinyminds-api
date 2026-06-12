@@ -5,7 +5,7 @@ import {
   ValidatorConstraintInterface,
   ValidationArguments,
 } from 'class-validator';
-import { PrismaService } from '../../prisma/prisma.service';
+import { PrismaService } from '../../prisma.service';
 import { Injectable } from '@nestjs/common';
 
 @ValidatorConstraint({ name: 'IsUnique', async: true })
@@ -15,7 +15,13 @@ export class IsUniqueConstraint implements ValidatorConstraintInterface {
 
   async validate(value: any, args: ValidationArguments) {
     const [table, column] = args.constraints;
-    const record = await (this.prisma as any)[table].findFirst({
+    const model = (this.prisma as any)[table];
+
+    if (!model) {
+      return false;
+    }
+
+    const record = await model.findFirst({
       where: { [column]: value },
     });
     return !record;
