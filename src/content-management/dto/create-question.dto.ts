@@ -30,6 +30,10 @@ export class CreateQuestionOptionDto {
   @IsOptional()
   @IsString()
   mediaUrl?: string;
+
+  @IsOptional()
+  @IsUUID()
+  asset3DId?: string;
 }
 
 export class CreateContentQuestionDto {

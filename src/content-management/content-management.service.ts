@@ -30,7 +30,7 @@ export class ContentManagementService {
       include: {
         questions: {
           include: {
-            options: { orderBy: { sortOrder: 'asc' } },
+            options: { include: { asset3D: true }, orderBy: { sortOrder: 'asc' } },
           },
           orderBy: { sortOrder: 'asc' },
         },
@@ -103,7 +103,7 @@ export class ContentManagementService {
         },
         questions: {
           include: {
-            options: { orderBy: { sortOrder: 'asc' } },
+            options: { include: { asset3D: true }, orderBy: { sortOrder: 'asc' } },
           },
           orderBy: { sortOrder: 'asc' },
         },
@@ -145,7 +145,7 @@ export class ContentManagementService {
         include: {
           questions: {
             include: {
-              options: { orderBy: { sortOrder: 'asc' } },
+              options: { include: { asset3D: true }, orderBy: { sortOrder: 'asc' } },
             },
             orderBy: { sortOrder: 'asc' },
           },
@@ -170,7 +170,7 @@ export class ContentManagementService {
         options: options ? { create: options } : undefined,
       } as any,
       include: {
-        options: { orderBy: { sortOrder: 'asc' } },
+        options: { include: { asset3D: true }, orderBy: { sortOrder: 'asc' } },
       },
     });
   }
@@ -202,7 +202,7 @@ export class ContentManagementService {
         orderBy: { sortOrder: 'asc' },
         include: {
           content: { select: { id: true, title: true } },
-          options: { orderBy: { sortOrder: 'asc' } },
+          options: { include: { asset3D: true }, orderBy: { sortOrder: 'asc' } },
         },
       }),
     ]);
@@ -223,7 +223,7 @@ export class ContentManagementService {
       where: { id },
       include: {
         content: { select: { id: true, title: true } },
-        options: { orderBy: { sortOrder: 'asc' } },
+        options: { include: { asset3D: true }, orderBy: { sortOrder: 'asc' } },
       },
     });
 
@@ -252,7 +252,7 @@ export class ContentManagementService {
           options: options ? { create: options } : undefined,
         } as any,
         include: {
-          options: { orderBy: { sortOrder: 'asc' } },
+          options: { include: { asset3D: true }, orderBy: { sortOrder: 'asc' } },
         },
       });
     });
