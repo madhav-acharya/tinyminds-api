@@ -23,7 +23,7 @@ import { UserRole } from '../common/enums/user-role.enum';
 export class GradeController {
   constructor(private readonly gradeService: GradeService) {}
 
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.OWNER)
   @Post()
   create(@Body() createGradeDto: CreateGradeDto) {
     return this.gradeService.create(createGradeDto);
@@ -39,13 +39,13 @@ export class GradeController {
     return this.gradeService.findOne(id);
   }
 
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.OWNER)
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateGradeDto: UpdateGradeDto) {
     return this.gradeService.update(id, updateGradeDto);
   }
 
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.OWNER)
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.gradeService.remove(id);
