@@ -23,8 +23,12 @@ export class AuthService {
   ) {}
 
   async register(registerDto: RegisterDto) {
-    if (registerDto.role !== UserRole.TEACHER && registerDto.role !== UserRole.PARENT) {
+    if (registerDto.role !== UserRole.OWNER && registerDto.role !== UserRole.PARENT) {
       throw new BadRequestException('Role not allowed for self-registration');
+    }
+
+    if (registerDto.role === UserRole.OWNER && !registerDto.institution) {
+      throw new BadRequestException('Institution details are required for Owner registration');
     }
 
     try {
