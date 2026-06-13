@@ -1,11 +1,11 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { CreateLearnerInviteDto } from './dto/create-learner-invite.dto';
-import { AcceptLearnerInviteDto } from './dto/accept-learner-invite.dto';
+
 import { UserRole } from '../common/enums/user-role.enum';
 import { InstitutionLearnerStatus } from '@prisma/client';
 import { LearnerInvite } from './entities/learner-invite.entity';
-import * as bcrypt from 'bcrypt';
+
 import { MailService } from '../mail/mail.service';
 
 @Injectable()
@@ -16,38 +16,17 @@ export class LearnerInviteService {
   ) {}
 
   async createInvite(createDto: CreateLearnerInviteDto): Promise<LearnerInvite> {
-    let parentProfile;
+    // Look up the learner by username
+    const learnerUser = await this.prisma.user.findFirst({
+      where: { username: createDto.learnerUsername, role: UserRole.LEARNER },
+      include: { learnerProfile: { include: { parent: { include: { user: true } } } } },
+    });
 
-    if (createDto.parentEmail) {
-      parentProfile = await this.prisma.parentProfile.findFirst({
-        where: { user: { email: createDto.parentEmail } },
-        include: { user: true },
-      });
-    } else {
-      const learnerUser = await this.prisma.user.findFirst({
-        where: { username: createDto.learnerUsername, role: UserRole.LEARNER },
-        include: {
-          learnerProfile: {
-            include: {
-              parent: {
-                include: { user: true },
-              },
-            },
-          },
-        },
-      });
-      if (learnerUser?.learnerProfile?.parent) {
-        parentProfile = learnerUser.learnerProfile.parent;
-      }
+    if (!learnerUser || !learnerUser.learnerProfile) {
+      throw new NotFoundException(`No learner account found with username: ${createDto.learnerUsername}`);
     }
 
-    if (!parentProfile) {
-      throw new NotFoundException(
-        createDto.parentEmail
-          ? `No parent account found with email: ${createDto.parentEmail}`
-          : `No learner found with username: ${createDto.learnerUsername} or parent profile is missing.`
-      );
-    }
+    const parentProfile = learnerUser.learnerProfile.parent;
 
     const invite = await this.prisma.learnerInvite.create({
       data: {
@@ -95,7 +74,7 @@ export class LearnerInviteService {
     });
   }
 
-  async acceptInvite(inviteId: string, acceptDto: AcceptLearnerInviteDto) {
+  async acceptInvite(inviteId: string) {
     const invite = await this.prisma.learnerInvite.findUnique({
       where: { id: inviteId },
     });
@@ -104,51 +83,23 @@ export class LearnerInviteService {
       throw new NotFoundException('Invitation not found or already processed');
     }
 
-    const hashedPassword = await bcrypt.hash(acceptDto.password, 10);
+    // Find the learner profile associated with the invite
+    const learnerUser = await this.prisma.user.findFirst({
+      where: { username: invite.learnerUsername, role: UserRole.LEARNER },
+      include: { learnerProfile: true },
+    });
+
+    if (!learnerUser || !learnerUser.learnerProfile) {
+      throw new NotFoundException('Learner profile not found for this invitation');
+    }
+
+    const learnerProfileId = learnerUser.learnerProfile.id;
 
     return this.prisma.$transaction(async (tx: any) => {
-      let user = await tx.user.findUnique({
-        where: { username: invite.learnerUsername },
-      });
-      let learnerProfile;
-
-      if (!user) {
-        user = await tx.user.create({
-          data: {
-            fullName: acceptDto.fullName,
-            username: invite.learnerUsername,
-            password: hashedPassword,
-            role: UserRole.LEARNER,
-          },
-        });
-
-        learnerProfile = await tx.learnerProfile.create({
-          data: {
-            userId: user.id,
-            parentId: invite.parentId,
-            gradeId: invite.gradeId,
-          },
-        });
-      } else {
-        learnerProfile = await tx.learnerProfile.findUnique({
-          where: { userId: user.id },
-        });
-
-        if (!learnerProfile) {
-          learnerProfile = await tx.learnerProfile.create({
-            data: {
-              userId: user.id,
-              parentId: invite.parentId,
-              gradeId: invite.gradeId,
-            },
-          });
-        }
-      }
-
       await tx.institutionLearner.create({
         data: {
           institutionId: invite.institutionId,
-          learnerId: learnerProfile.id,
+          learnerId: learnerProfileId,
           gradeId: invite.gradeId,
           status: InstitutionLearnerStatus.ACCEPTED,
           acceptedAt: new Date(),
@@ -163,7 +114,7 @@ export class LearnerInviteService {
         },
       });
 
-      return user;
+      return learnerUser;
     });
   }
 

@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { LearnerInviteService } from './learner-invite.service';
 import { CreateLearnerInviteDto } from './dto/create-learner-invite.dto';
-import { AcceptLearnerInviteDto } from './dto/accept-learner-invite.dto';
+
 import { AuthGuard } from '../common/guards/auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -44,11 +44,8 @@ export class LearnerInviteController {
 
   @Roles(UserRole.PARENT)
   @Post(':id/accept')
-  acceptInvite(
-    @Param('id') id: string,
-    @Body() acceptDto: AcceptLearnerInviteDto,
-  ) {
-    return this.learnerInviteService.acceptInvite(id, acceptDto);
+  acceptInvite(@Param('id') id: string) {
+    return this.learnerInviteService.acceptInvite(id);
   }
 
   @Roles(UserRole.PARENT)
