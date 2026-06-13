@@ -11,6 +11,7 @@ import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { UserRole } from '../common/enums/user-role.enum';
 import { ActiveUserData } from '../common/interfaces/active-user.interface';
+import { PrismaService } from '../prisma.service';
 
 @Injectable()
 export class AuthService {
@@ -20,6 +21,7 @@ export class AuthService {
     private readonly userService: UserService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly prisma: PrismaService,
   ) {}
 
   async register(registerDto: RegisterDto) {
@@ -91,23 +93,29 @@ export class AuthService {
     };
 
     const [accessToken, refreshToken] = await Promise.all([
-      this.jwtService.signAsync(payload, {
-        expiresIn: '1h',
-      }),
-      this.jwtService.signAsync(
-        { sub: user.id },
-        {
-          expiresIn: '7d',
-        },
-      ),
+      this.jwtService.signAsync(payload, { expiresIn: '1h' }),
+      this.jwtService.signAsync({ sub: user.id }, { expiresIn: '7d' }),
     ]);
 
     const { password, ...userData } = user;
 
+    let institutionId: string | null = null;
+    if (user.role === UserRole.OWNER) {
+      const ownerProfile = await this.prisma.ownerProfile.findUnique({
+        where: { userId: user.id },
+      });
+      institutionId = ownerProfile?.institutionId ?? null;
+    } else if (user.role === UserRole.TEACHER) {
+      const teacherProfile = await this.prisma.teacherProfile.findUnique({
+        where: { userId: user.id },
+      });
+      institutionId = teacherProfile?.institutionId ?? null;
+    }
+
     return {
       accessToken,
       refreshToken,
-      user: userData,
+      user: { ...userData, institutionId },
     };
   }
 }
