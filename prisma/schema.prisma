@@ -404,14 +404,12 @@ model Asset3D {
   license      String?  @map("license")
   authorName   String?  @map("author_name")
   attribution  String?  @map("attribution")
+  isPublic     Boolean  @default(true) @map("is_public")
   createdAt    DateTime @default(now()) @map("created_at")
 
-  institutionId String? @map("institution_id")
-  isPublic      Boolean @default(false) @map("is_public")
-  directory     String? @map("directory")
-
-  institution Institution?     @relation(fields: [institutionId], references: [id])
-  options     QuestionOption[]
+  options       QuestionOption[]
+  institution   Institution?     @relation(fields: [institutionId], references: [id])
+  institutionId String?
 
   @@map("asset_3d")
   @@schema("content")

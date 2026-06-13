@@ -155,7 +155,6 @@ export class AssetService {
           attribution: data.attribution,
           institutionId,
           isPublic,
-          directory,
         },
       });
 
@@ -227,7 +226,6 @@ export class AssetService {
           fileType: ext,
           institutionId,
           isPublic,
-          directory,
         },
       });
 

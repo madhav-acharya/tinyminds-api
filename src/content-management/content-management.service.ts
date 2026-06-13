@@ -7,17 +7,29 @@ import { FindAllContentDto } from './dto/find-all-content.dto';
 import { CreateContentQuestionDto } from './dto/create-question.dto';
 import { UpdateContentQuestionDto } from './dto/update-question.dto';
 import { FindAllContentQuestionDto } from './dto/find-all-question.dto';
+import { ActiveUserData } from '../common/interfaces/active-user.interface';
+import { UserRole } from '../common/enums/user-role.enum';
 
 @Injectable()
 export class ContentManagementService {
   constructor(private readonly prisma: PrismaService) {}
 
   // Content Methods
-  async createContent(createContentDto: CreateContentDto) {
+  async createContent(createContentDto: CreateContentDto, user: ActiveUserData) {
     const { questions, ...contentData } = createContentDto;
+
+    let teacherProfileId: string | undefined;
+    if (user.role === UserRole.TEACHER) {
+      const teacher = await this.prisma.teacherProfile.findUnique({
+        where: { userId: user.sub },
+      });
+      if (teacher) teacherProfileId = teacher.id;
+    }
+
     return this.prisma.content.create({
       data: {
         ...(contentData as any),
+        teacherId: teacherProfileId,
         questions: questions
           ? {
               create: questions.map((q) => ({
@@ -118,7 +130,7 @@ export class ContentManagementService {
     return content;
   }
 
-  async updateContent(id: string, updateContentDto: UpdateContentDto) {
+  async updateContent(id: string, updateContentDto: UpdateContentDto, user: ActiveUserData) {
     await this.findOneContent(id);
     const { questions, ...contentData } = updateContentDto;
 
