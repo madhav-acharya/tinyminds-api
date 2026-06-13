@@ -16,14 +16,37 @@ export class LearnerInviteService {
   ) {}
 
   async createInvite(createDto: CreateLearnerInviteDto): Promise<LearnerInvite> {
-    // Resolve parent profile from email
-    const parentProfile = await this.prisma.parentProfile.findFirst({
-      where: { user: { email: createDto.parentEmail } },
-      include: { user: true },
-    });
+    let parentProfile;
+
+    if (createDto.parentEmail) {
+      parentProfile = await this.prisma.parentProfile.findFirst({
+        where: { user: { email: createDto.parentEmail } },
+        include: { user: true },
+      });
+    } else {
+      const learnerUser = await this.prisma.user.findFirst({
+        where: { username: createDto.learnerUsername, role: UserRole.LEARNER },
+        include: {
+          learnerProfile: {
+            include: {
+              parent: {
+                include: { user: true },
+              },
+            },
+          },
+        },
+      });
+      if (learnerUser?.learnerProfile?.parent) {
+        parentProfile = learnerUser.learnerProfile.parent;
+      }
+    }
 
     if (!parentProfile) {
-      throw new NotFoundException(`No parent account found with email: ${createDto.parentEmail}`);
+      throw new NotFoundException(
+        createDto.parentEmail
+          ? `No parent account found with email: ${createDto.parentEmail}`
+          : `No learner found with username: ${createDto.learnerUsername} or parent profile is missing.`
+      );
     }
 
     const invite = await this.prisma.learnerInvite.create({
@@ -84,22 +107,43 @@ export class LearnerInviteService {
     const hashedPassword = await bcrypt.hash(acceptDto.password, 10);
 
     return this.prisma.$transaction(async (tx: any) => {
-      const user = await tx.user.create({
-        data: {
-          fullName: acceptDto.fullName,
-          username: invite.learnerUsername,
-          password: hashedPassword,
-          role: UserRole.LEARNER,
-        },
+      let user = await tx.user.findUnique({
+        where: { username: invite.learnerUsername },
       });
+      let learnerProfile;
 
-      const learnerProfile = await tx.learnerProfile.create({
-        data: {
-          userId: user.id,
-          parentId: invite.parentId,
-          gradeId: invite.gradeId,
-        },
-      });
+      if (!user) {
+        user = await tx.user.create({
+          data: {
+            fullName: acceptDto.fullName,
+            username: invite.learnerUsername,
+            password: hashedPassword,
+            role: UserRole.LEARNER,
+          },
+        });
+
+        learnerProfile = await tx.learnerProfile.create({
+          data: {
+            userId: user.id,
+            parentId: invite.parentId,
+            gradeId: invite.gradeId,
+          },
+        });
+      } else {
+        learnerProfile = await tx.learnerProfile.findUnique({
+          where: { userId: user.id },
+        });
+
+        if (!learnerProfile) {
+          learnerProfile = await tx.learnerProfile.create({
+            data: {
+              userId: user.id,
+              parentId: invite.parentId,
+              gradeId: invite.gradeId,
+            },
+          });
+        }
+      }
 
       await tx.institutionLearner.create({
         data: {
@@ -137,6 +181,27 @@ export class LearnerInviteService {
       data: {
         status: InstitutionLearnerStatus.REJECTED,
       },
+    });
+  }
+
+  async getInvites(institutionId: string) {
+    return this.prisma.learnerInvite.findMany({
+      where: { institutionId },
+      include: {
+        parent: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                fullName: true,
+                email: true,
+              },
+            },
+          },
+        },
+        grade: true,
+      },
+      orderBy: { createdAt: 'desc' },
     });
   }
 }
