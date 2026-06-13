@@ -2,15 +2,23 @@ import { IsNotEmpty, IsOptional, IsString, IsEnum, IsUUID, IsNumber, IsArray, Va
 import { Type } from 'class-transformer';
 
 export enum QuestionType {
+  SINGLE_CHOICE = 'SINGLE_CHOICE',
   MULTIPLE_CHOICE = 'MULTIPLE_CHOICE',
+  IMAGE_TAP = 'IMAGE_TAP',
+  ANIMATION_TAP = 'ANIMATION_TAP',
   TRUE_FALSE = 'TRUE_FALSE',
-  FILL_IN_BLANKS = 'FILL_IN_BLANKS',
+  TEXT_INPUT = 'TEXT_INPUT',
+  FILL_BLANK = 'FILL_BLANK',
+  MATCHING = 'MATCHING',
+  ORDERING = 'ORDERING',
+  AUDIO_CHOICE = 'AUDIO_CHOICE',
+  VIDEO_CHOICE = 'VIDEO_CHOICE',
 }
 
 export class CreateQuestionOptionDto {
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
-  text: string;
+  text?: string;
 
   @IsNotEmpty()
   isCorrect: boolean;
@@ -18,12 +26,16 @@ export class CreateQuestionOptionDto {
   @IsOptional()
   @IsNumber()
   sortOrder?: number;
+
+  @IsOptional()
+  @IsString()
+  mediaUrl?: string;
 }
 
 export class CreateContentQuestionDto {
-  @IsNotEmpty()
+  @IsOptional()
   @IsUUID()
-  contentId: string;
+  contentId?: string;
 
   @IsNotEmpty()
   @IsString()
@@ -37,38 +49,6 @@ export class CreateContentQuestionDto {
   @IsEnum(QuestionType)
   type: QuestionType;
 
-  @IsNotEmpty()
-  @IsNumber()
-  sortOrder: number;
-
-  @IsOptional()
-  @IsNumber()
-  points?: number;
-
-  @IsOptional()
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => CreateQuestionOptionDto)
-  options?: CreateQuestionOptionDto[];
-}
-
-export class UpdateContentQuestionDto {
-  @IsOptional()
-  @IsUUID()
-  contentId?: string;
-
-  @IsOptional()
-  @IsString()
-  title?: string;
-
-  @IsOptional()
-  @IsString()
-  instruction?: string;
-
-  @IsOptional()
-  @IsEnum(QuestionType)
-  type?: QuestionType;
-
   @IsOptional()
   @IsNumber()
   sortOrder?: number;
@@ -78,28 +58,22 @@ export class UpdateContentQuestionDto {
   points?: number;
 
   @IsOptional()
+  @IsString()
+  mediaUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  animationUrl?: string;
+
+  @IsOptional()
+  config?: any;
+
+  @IsOptional()
+  answerKey?: any;
+
+  @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => CreateQuestionOptionDto)
   options?: CreateQuestionOptionDto[];
-}
-
-export class FindAllContentQuestionDto {
-  @IsOptional()
-  page?: number;
-
-  @IsOptional()
-  limit?: number;
-
-  @IsOptional()
-  @IsString()
-  search?: string;
-
-  @IsOptional()
-  @IsUUID()
-  contentId?: string;
-
-  @IsOptional()
-  @IsEnum(QuestionType)
-  type?: QuestionType;
 }
