@@ -6,6 +6,7 @@ import {
   Param,
   UseGuards,
   Req,
+  Query,
 } from '@nestjs/common';
 import { LearnerInviteService } from './learner-invite.service';
 import { CreateLearnerInviteDto } from './dto/create-learner-invite.dto';
@@ -22,10 +23,16 @@ import { LearnerInvite } from './entities/learner-invite.entity';
 export class LearnerInviteController {
   constructor(private readonly learnerInviteService: LearnerInviteService) {}
 
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TEACHER)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.OWNER, UserRole.TEACHER)
   @Post()
   createInvite(@Body() createDto: CreateLearnerInviteDto): Promise<LearnerInvite> {
     return this.learnerInviteService.createInvite(createDto);
+  }
+
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.OWNER, UserRole.TEACHER)
+  @Get()
+  getInvites(@Query('institutionId') institutionId: string) {
+    return this.learnerInviteService.getInvites(institutionId);
   }
 
   @Roles(UserRole.PARENT)

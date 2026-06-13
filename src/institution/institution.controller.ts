@@ -47,6 +47,12 @@ export class InstitutionController {
     return this.institutionService.findOne(id);
   }
 
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.OWNER)
+  @Get(':id/dashboard')
+  getDashboardStats(@Param('id') id: string) {
+    return this.institutionService.getDashboardStats(id);
+  }
+
   @Roles(UserRole.SUPER_ADMIN)
   @Patch(':id')
   update(

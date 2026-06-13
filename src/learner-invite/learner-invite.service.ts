@@ -134,4 +134,25 @@ export class LearnerInviteService {
       },
     });
   }
+
+  async getInvites(institutionId: string) {
+    return this.prisma.learnerInvite.findMany({
+      where: { institutionId },
+      include: {
+        parent: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                fullName: true,
+                email: true,
+              },
+            },
+          },
+        },
+        grade: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
 }
