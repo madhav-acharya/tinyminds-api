@@ -16,9 +16,23 @@ export class LearnerInviteService {
   ) {}
 
   async createInvite(createDto: CreateLearnerInviteDto): Promise<LearnerInvite> {
+    // Resolve parent profile from email
+    const parentProfile = await this.prisma.parentProfile.findFirst({
+      where: { user: { email: createDto.parentEmail } },
+      include: { user: true },
+    });
+
+    if (!parentProfile) {
+      throw new NotFoundException(`No parent account found with email: ${createDto.parentEmail}`);
+    }
+
     const invite = await this.prisma.learnerInvite.create({
       data: {
-        ...createDto,
+        institutionId: createDto.institutionId,
+        learnerUsername: createDto.learnerUsername,
+        parentId: parentProfile.id,
+        gradeId: createDto.gradeId,
+        expiresAt: createDto.expiresAt,
         status: InstitutionLearnerStatus.INVITED,
       },
       include: {
@@ -27,9 +41,8 @@ export class LearnerInviteService {
       },
     });
 
-    const parentUser = invite.parent?.user;
-    const parentEmail = parentUser?.email;
-    const parentName  = parentUser?.fullName ?? 'Parent';
+    const parentEmail = parentProfile.user?.email;
+    const parentName  = parentProfile.user?.fullName ?? 'Parent';
 
     if (parentEmail) {
       await this.mail.sendLearnerInvite({

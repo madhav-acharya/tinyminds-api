@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class CreateLearnerInviteDto {
   @IsNotEmpty()
@@ -10,8 +10,8 @@ export class CreateLearnerInviteDto {
   learnerUsername: string;
 
   @IsNotEmpty()
-  @IsString()
-  parentId: string;
+  @IsEmail()
+  parentEmail: string;
 
   @IsOptional()
   @IsString()
