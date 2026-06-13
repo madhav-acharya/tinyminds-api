@@ -9,8 +9,7 @@ import { InstitutionModule } from './institution/institution.module';
 import { InstitutionLearnerModule } from './institution-learner/institution-learner.module';
 import { LearningModuleModule } from './module/learning-module.module';
 import { GradeModule } from './grade/grade.module';
-import { ContentModule } from './content/content.module';
-import { ContentQuestionModule } from './content-question/content-question.module';
+import { ContentManagementModule } from './content-management/content-management.module';
 import { ContentSubmissionModule } from './content-submission/content-submission.module';
 import { LearnerInviteModule } from './learner-invite/learner-invite.module';
 import { TeacherInviteModule } from './teacher-invite/teacher-invite.module';
@@ -22,8 +21,7 @@ import { TeacherInviteModule } from './teacher-invite/teacher-invite.module';
     InstitutionModule,
     GradeModule,
     LearningModuleModule,
-    ContentModule,
-    ContentQuestionModule,
+    ContentManagementModule,
     LearnerInviteModule,
     TeacherInviteModule,
     UserModule,
