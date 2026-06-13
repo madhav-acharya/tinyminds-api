@@ -15,6 +15,7 @@ import { LearnerInviteModule } from './learner-invite/learner-invite.module';
 import { TeacherInviteModule } from './teacher-invite/teacher-invite.module';
 import { CloudinaryModule } from './cloudinary/cloudinary.module';
 import { PrismaService } from './prisma.service';
+import { AssetModule } from './asset/asset.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { PrismaService } from './prisma.service';
     InstitutionLearnerModule,
     ContentSubmissionModule,
     CloudinaryModule,
+    AssetModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],
