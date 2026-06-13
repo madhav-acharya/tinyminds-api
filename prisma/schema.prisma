@@ -377,15 +377,37 @@ model QuestionOption {
   questionId String  @map("question_id")
   text       String? @map("text")
   mediaUrl   String? @map("media_url")
-  isCorrect  Boolean @default(false) @map("is_correct")
-  sortOrder  Int     @default(0) @map("sort_order")
+  isCorrect  Boolean  @default(false) @map("is_correct")
+  sortOrder  Int      @default(0) @map("sort_order")
+  asset3DId  String?  @map("asset_3d_id")
 
   question ContentQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  asset3D  Asset3D?        @relation(fields: [asset3DId], references: [id], onDelete: SetNull)
 
   @@index([questionId], map: "idx_question_options_question_id")
   @@index([isCorrect], map: "idx_question_options_is_correct")
   @@index([sortOrder], map: "idx_question_options_sort_order")
+  @@index([asset3DId], map: "idx_question_options_asset_3d_id")
   @@map("question_options")
+  @@schema("content")
+}
+
+model Asset3D {
+  id           String   @id @default(uuid()) @map("id")
+  name         String   @map("name")
+  source       String   @map("source")
+  sourceId     String?  @map("source_id")
+  modelUrl     String   @map("model_url")
+  thumbnailUrl String?  @map("thumbnail_url")
+  fileType     String   @default("glb") @map("file_type")
+  license      String?  @map("license")
+  authorName   String?  @map("author_name")
+  attribution  String?  @map("attribution")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  options QuestionOption[]
+
+  @@map("asset_3d")
   @@schema("content")
 }
 
