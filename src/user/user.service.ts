@@ -86,7 +86,21 @@ export class UserService {
       adminProfile: true,
       teacherProfile: true,
       parentProfile: true,
-      learnerProfile: true,
+      learnerProfile: {
+        include: {
+          parent: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  fullName: true,
+                  email: true,
+                },
+              },
+            },
+          },
+        },
+      },
       ownerProfile: true,
     };
 
@@ -254,7 +268,21 @@ export class UserService {
         adminProfile: true,
         teacherProfile: true,
         parentProfile: true,
-        learnerProfile: true,
+        learnerProfile: {
+          include: {
+            parent: {
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    fullName: true,
+                    email: true,
+                  },
+                },
+              },
+            },
+          },
+        },
         ownerProfile: true,
       },
     });
