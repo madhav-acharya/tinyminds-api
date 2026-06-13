@@ -8,6 +8,7 @@ import {
   Delete,
   Query,
   UseGuards,
+  Req,
 } from '@nestjs/common';
 import { InstitutionService } from './institution.service';
 import { CreateInstitutionDto } from './dto/create-institution.dto';
@@ -17,6 +18,7 @@ import { AuthGuard } from '../common/guards/auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { UserRole } from '../common/enums/user-role.enum';
+import type { Request } from 'express';
 
 @UseGuards(AuthGuard, RolesGuard)
 @Controller('institution')
@@ -32,6 +34,12 @@ export class InstitutionController {
   @Get()
   findAll(@Query() query: FindAllInstitutionDto) {
     return this.institutionService.findAll(query);
+  }
+
+  @Get('my')
+  findMyInstitution(@Req() request: Request) {
+    const user = request['user'] as { sub: string; role: string };
+    return this.institutionService.findMyInstitution(user.sub, user.role);
   }
 
   @Get(':id')

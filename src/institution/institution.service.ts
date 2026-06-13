@@ -56,6 +56,47 @@ export class InstitutionService {
     };
   }
 
+  async findMyInstitution(userId: string, role: string) {
+    if (role === 'LEARNER') {
+      const learnerProfile = await this.prisma.learnerProfile.findUnique({
+        where: { userId },
+      });
+      if (!learnerProfile) {
+        throw new NotFoundException('Learner profile not found');
+      }
+      
+      const institutionLearners = await this.prisma.institutionLearner.findMany({
+        where: {
+          learnerId: learnerProfile.id,
+          status: 'ACCEPTED',
+        },
+        include: {
+          institution: true,
+        },
+      });
+
+      return institutionLearners.map(il => il.institution);
+    }
+
+    if (role === 'TEACHER') {
+      const teacherProfile = await this.prisma.teacherProfile.findUnique({
+        where: { userId },
+        include: { institution: true },
+      });
+      return teacherProfile?.institution ? [teacherProfile.institution] : [];
+    }
+
+    if (role === 'OWNER') {
+      const ownerProfile = await this.prisma.ownerProfile.findUnique({
+        where: { userId },
+        include: { institution: true },
+      });
+      return ownerProfile?.institution ? [ownerProfile.institution] : [];
+    }
+
+    return [];
+  }
+
   async findOne(id: string) {
     const institution = await this.prisma.institution.findUnique({
       where: { id },
