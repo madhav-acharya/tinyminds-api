@@ -6,6 +6,9 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { FindAllUsersDto } from './dto/find-all-user.dto';
 import { PrismaService } from '../prisma.service';
 import { PaginatedResponse } from '../common/interfaces/api-response.interface';
+import type { Request } from 'express';
+import { CreateParentChildDto } from './dto/create-parent-child.dto';
+import { randomBytes } from 'crypto';
 
 @Injectable()
 export class UserService {
@@ -107,6 +110,66 @@ export class UserService {
         OR: [{ email: usernameOrEmail }, { username: usernameOrEmail }],
       },
     });
+  }
+
+  async createChild(request: Request, dto: CreateParentChildDto) {
+    const activeUser = request['user'] as { sub: string };
+    const parentProfile = await this.prisma.parentProfile.findUnique({
+      where: { userId: activeUser.sub },
+    });
+
+    if (!parentProfile) {
+      throw new BadRequestException('Parent profile not found');
+    }
+
+    const childHandle = dto.fullName
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '')
+      .slice(0, 16) || 'child';
+    const tempUsername = `${childHandle}-${randomBytes(3).toString('hex')}`;
+    const tempPassword = randomBytes(12).toString('hex');
+
+    const child = await this.create({
+      fullName: dto.fullName,
+      username: tempUsername,
+      password: tempPassword,
+      role: UserRole.LEARNER,
+      parentId: parentProfile.id,
+    });
+
+    return {
+      id: child.id,
+      name: child.fullName,
+      grade: dto.grade?.trim() || 'Learner',
+      progress: 0,
+      streak: 0,
+      nextGoal: dto.nextGoal?.trim() || 'Set a learning goal',
+    };
+  }
+
+  async findChildrenForParent(request: Request) {
+    const activeUser = request['user'] as { sub: string };
+    const children = await this.prisma.learnerProfile.findMany({
+      where: {
+        parent: {
+          userId: activeUser.sub,
+        },
+      },
+      include: {
+        user: true,
+        grade: true,
+      },
+      orderBy: { user: { createdAt: 'desc' } },
+    });
+
+    return children.map((child) => ({
+      id: child.id,
+      name: child.user.fullName,
+      grade: child.grade?.name || 'Learner',
+      progress: 0,
+      streak: 0,
+      nextGoal: 'Set a learning goal',
+    }));
   }
 
   async findOne(id: string) {
