@@ -17,7 +17,8 @@ async function bootstrap() {
   );
   useContainer(app.select(AppModule), { fallbackOnErrors: true });
   app.enableCors({ origin: '*' });
-  await app.listen(process.env.PORT ?? 3000);
-  console.log(`Application is running on: ${process.env.PORT}`);
+  const port = process.env.PORT ?? 3000;
+  await app.listen(port);
+  console.log(`Application is running on: http://localhost:${port}`);
 }
 bootstrap();
