@@ -8,7 +8,6 @@ import { PrismaService } from '../prisma.service';
 import { PaginatedResponse } from '../common/interfaces/api-response.interface';
 import type { Request } from 'express';
 import { CreateParentChildDto } from './dto/create-parent-child.dto';
-import { randomBytes } from 'crypto';
 
 @Injectable()
 export class UserService {
@@ -131,13 +130,6 @@ export class UserService {
       throw new BadRequestException('Parent profile not found');
     }
 
-    const childHandle = dto.fullName
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '')
-      .slice(0, 16) || 'child';
-    const tempUsername = `${childHandle}-${randomBytes(3).toString('hex')}`;
-    const tempPassword = randomBytes(12).toString('hex');
-
     let gradeId: string | undefined = undefined;
     if (dto.grade?.trim()) {
       const gradeName = dto.grade.trim();
@@ -147,13 +139,9 @@ export class UserService {
           institutionId: null,
         },
       });
-
       if (!grade) {
         grade = await this.prisma.grade.create({
-          data: {
-            name: gradeName,
-            institutionId: null,
-          },
+          data: { name: gradeName, institutionId: null },
         });
       }
       gradeId = grade.id;
@@ -161,8 +149,9 @@ export class UserService {
 
     const child = await this.create({
       fullName: dto.fullName,
-      username: tempUsername,
-      password: tempPassword,
+      username: dto.username,
+      email: dto.email,
+      password: dto.password,
       role: UserRole.LEARNER,
       parentId: parentProfile.id,
       gradeId,
