@@ -10,16 +10,12 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ContentManagementService } from './content-management.service';
-import {
-  CreateContentDto,
-  UpdateContentDto,
-  FindAllContentDto,
-} from './dto/content.dto';
-import {
-  CreateContentQuestionDto,
-  UpdateContentQuestionDto,
-  FindAllContentQuestionDto,
-} from './dto/question.dto';
+import { CreateContentDto } from './dto/create-content.dto';
+import { UpdateContentDto } from './dto/update-content.dto';
+import { FindAllContentDto } from './dto/find-all-content.dto';
+import { CreateContentQuestionDto } from './dto/create-question.dto';
+import { UpdateContentQuestionDto } from './dto/update-question.dto';
+import { FindAllContentQuestionDto } from './dto/find-all-question.dto';
 import { AuthGuard } from '../common/guards/auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
