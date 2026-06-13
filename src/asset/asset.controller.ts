@@ -1,4 +1,5 @@
-import { Controller, Get, Post, Body, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Query, UseGuards, Req, UploadedFiles, UseInterceptors, BadRequestException } from '@nestjs/common';
+import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { AssetService } from './asset.service';
 import { AuthGuard } from '../common/guards/auth.guard';
 
@@ -7,33 +8,21 @@ import { AuthGuard } from '../common/guards/auth.guard';
 export class AssetController {
   constructor(private readonly assetService: AssetService) {}
 
-  /**
-   * GET /assets/search?q=apple
-   * Returns: { library: Asset3D[], polyResults: PolyPizzaItem[] }
-   * library = already saved (Cloudinary), polyResults = fresh from Poly Pizza (with `cached` flag)
-   */
   @Get('search')
-  search(@Query('q') q: string) {
+  search(@Query('q') q: string, @Req() req: any) {
     if (!q?.trim()) return { library: [], polyResults: [] };
-    return this.assetService.searchAssets(q);
+    return this.assetService.searchAssets(q, req.user);
   }
 
-  /**
-   * GET /assets/library?page=1&limit=20
-   * Returns all assets that have been saved to Cloudinary.
-   */
   @Get('library')
   getLibrary(
     @Query('page') page = '1',
     @Query('limit') limit = '20',
+    @Req() req: any
   ) {
-    return this.assetService.getLibrary(Number(page), Number(limit));
+    return this.assetService.getLibrary(Number(page), Number(limit), req.user);
   }
 
-  /**
-   * POST /assets/save
-   * Teacher clicks a Poly Pizza result → save to Cloudinary → persist in DB.
-   */
   @Post('save')
   saveAsset(
     @Body()
@@ -46,7 +35,36 @@ export class AssetController {
       license?: string;
       attribution?: string;
     },
+    @Req() req: any
   ) {
-    return this.assetService.saveAsset(body);
+    return this.assetService.saveAsset(body, req.user);
+  }
+
+  @Post('upload')
+  @UseInterceptors(
+    FileFieldsInterceptor([
+      { name: 'model', maxCount: 1 },
+      { name: 'thumbnail', maxCount: 1 },
+    ]),
+  )
+  uploadAsset(
+    @Req() req: any,
+    @Body() body: { name: string; directory?: string },
+    @UploadedFiles()
+    files: {
+      model?: Express.Multer.File[];
+      thumbnail?: Express.Multer.File[];
+    },
+  ) {
+    if (!files.model || !files.model.length) {
+      throw new BadRequestException('3D model file is required');
+    }
+    return this.assetService.uploadAsset(
+      body,
+      files.model[0],
+      files.thumbnail?.[0],
+      req.user,
+    );
   }
 }
+

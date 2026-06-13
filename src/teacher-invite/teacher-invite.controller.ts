@@ -4,6 +4,8 @@ import {
   Body,
   Param,
   UseGuards,
+  Get,
+  Query,
 } from '@nestjs/common';
 import { TeacherInviteService } from './teacher-invite.service';
 import { CreateTeacherInviteDto } from './dto/create-teacher-invite.dto';
@@ -22,6 +24,13 @@ export class TeacherInviteController {
   @Post()
   createInvite(@Body() createDto: CreateTeacherInviteDto) {
     return this.teacherInviteService.createInvite(createDto);
+  }
+
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.OWNER)
+  @Get()
+  getInvites(@Query('institutionId') institutionId: string) {
+    return this.teacherInviteService.getInvites(institutionId);
   }
 
   @Post(':id/accept')

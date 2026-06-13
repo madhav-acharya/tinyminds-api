@@ -123,6 +123,11 @@ export class AuthService {
         where: { userId: user.id },
       });
       institutionId = teacherProfile?.institutionId ?? null;
+    } else if (user.role === UserRole.ADMIN || user.role === UserRole.SUPER_ADMIN) {
+      const adminProfile = await this.prisma.adminProfile.findUnique({
+        where: { userId: user.id },
+      });
+      institutionId = adminProfile?.institutionId ?? null;
     }
 
     return {

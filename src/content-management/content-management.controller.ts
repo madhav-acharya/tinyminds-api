@@ -20,6 +20,8 @@ import { AuthGuard } from '../common/guards/auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { UserRole } from '../common/enums/user-role.enum';
+import { ActiveUser } from '../common/decorators/active-user.decorator';
+import type { ActiveUserData } from '../common/interfaces/active-user.interface';
 
 @UseGuards(AuthGuard, RolesGuard)
 @Controller('content-management')
@@ -29,8 +31,8 @@ export class ContentManagementController {
   // Content Endpoints
   @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TEACHER)
   @Post('content')
-  createContent(@Body() dto: CreateContentDto) {
-    return this.service.createContent(dto);
+  createContent(@Body() dto: CreateContentDto, @ActiveUser() user: ActiveUserData) {
+    return this.service.createContent(dto, user);
   }
 
   @Get('content')
@@ -45,8 +47,12 @@ export class ContentManagementController {
 
   @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TEACHER)
   @Patch('content/:id')
-  updateContent(@Param('id') id: string, @Body() dto: UpdateContentDto) {
-    return this.service.updateContent(id, dto);
+  updateContent(
+    @Param('id') id: string,
+    @Body() dto: UpdateContentDto,
+    @ActiveUser() user: ActiveUserData,
+  ) {
+    return this.service.updateContent(id, dto, user);
   }
 
   @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)

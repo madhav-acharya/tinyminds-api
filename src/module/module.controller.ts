@@ -23,7 +23,7 @@ import { UserRole } from '../common/enums/user-role.enum';
 export class ModuleController {
   constructor(private readonly moduleService: ModuleService) {}
 
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.OWNER)
   @Post()
   create(@Body() createModuleDto: CreateModuleDto) {
     return this.moduleService.create(createModuleDto);
@@ -39,13 +39,13 @@ export class ModuleController {
     return this.moduleService.findOne(id);
   }
 
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.OWNER)
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateModuleDto: UpdateModuleDto) {
     return this.moduleService.update(id, updateModuleDto);
   }
 
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.OWNER)
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.moduleService.remove(id);
