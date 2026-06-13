@@ -42,6 +42,20 @@ export class TeacherInviteService {
       throw new NotFoundException('Invitation not found or already processed');
     }
 
+    const existingUserByEmail = await this.prisma.user.findUnique({
+      where: { email: invite.email },
+    });
+    if (existingUserByEmail) {
+      throw new BadRequestException('A user with this email address is already registered.');
+    }
+
+    const existingUserByUsername = await this.prisma.user.findUnique({
+      where: { username: acceptDto.username },
+    });
+    if (existingUserByUsername) {
+      throw new BadRequestException('This username is already taken. Please choose a different one.');
+    }
+
     const hashedPassword = await bcrypt.hash(acceptDto.password, 10);
 
     return this.prisma.$transaction(async (tx: any) => {

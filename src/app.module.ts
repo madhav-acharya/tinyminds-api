@@ -13,6 +13,7 @@ import { ContentManagementModule } from './content-management/content-management
 import { ContentSubmissionModule } from './content-submission/content-submission.module';
 import { LearnerInviteModule } from './learner-invite/learner-invite.module';
 import { TeacherInviteModule } from './teacher-invite/teacher-invite.module';
+import { PrismaService } from './prisma.service';
 
 @Module({
   imports: [
@@ -30,6 +31,6 @@ import { TeacherInviteModule } from './teacher-invite/teacher-invite.module';
     ContentSubmissionModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, PrismaService],
 })
 export class AppModule {}
