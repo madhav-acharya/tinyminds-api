@@ -22,7 +22,10 @@ export class AssetService {
   async searchAssets(query: string) {
     // 1. Check our own asset library first
     const library = await this.prisma.asset3D.findMany({
-      where: { name: { contains: query, mode: 'insensitive' } },
+      where: {
+        name: { contains: query, mode: 'insensitive' },
+        isPublic: true,
+      },
       orderBy: { createdAt: 'desc' },
       take: 12,
     });
@@ -56,11 +59,12 @@ export class AssetService {
     const skip = (page - 1) * limit;
     const [items, total] = await Promise.all([
       this.prisma.asset3D.findMany({
+        where: { isPublic: true },
         orderBy: { createdAt: 'desc' },
         skip,
         take: limit,
       }),
-      this.prisma.asset3D.count(),
+      this.prisma.asset3D.count({ where: { isPublic: true } }),
     ]);
     return { items, total, page, limit };
   }
@@ -138,6 +142,7 @@ export class AssetService {
           authorName: data.authorName,
           license: data.license,
           attribution: data.attribution,
+          isPublic: (data as any).isPublic ?? true,
         },
       });
 

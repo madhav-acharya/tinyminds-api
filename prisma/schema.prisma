@@ -403,6 +403,7 @@ model Asset3D {
   license      String?  @map("license")
   authorName   String?  @map("author_name")
   attribution  String?  @map("attribution")
+  isPublic     Boolean  @default(true) @map("is_public")
   createdAt    DateTime @default(now()) @map("created_at")
 
   options QuestionOption[]
