@@ -5,18 +5,32 @@ import { AcceptTeacherInviteDto } from './dto/accept-teacher-invite.dto';
 import { UserRole } from '../common/enums/user-role.enum';
 import { InstitutionLearnerStatus } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import { MailService } from '../mail/mail.service';
 
 @Injectable()
 export class TeacherInviteService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly mail: MailService,
+  ) {}
 
   async createInvite(createDto: CreateTeacherInviteDto) {
-    return this.prisma.teacherInvite.create({
+    const invite = await this.prisma.teacherInvite.create({
       data: {
         ...createDto,
         status: InstitutionLearnerStatus.INVITED,
       },
+      include: { institution: true },
     });
+
+    await this.mail.sendTeacherInvite({
+      toEmail: invite.email,
+      toName: invite.fullName,
+      institutionName: invite.institution.name,
+      inviteId: invite.id,
+    });
+
+    return invite;
   }
 
   async acceptInvite(inviteId: string, acceptDto: AcceptTeacherInviteDto) {
