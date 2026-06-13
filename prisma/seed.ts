@@ -12,7 +12,14 @@ const prisma = new PrismaClient({ adapter } as any);
 
 async function main() {
   const superAdminPassword = process.env.SUPER_ADMIN_PASSWORD || 'adminpassword';
+  const superAdminEmail = process.env.SUPER_ADMIN_EMAIL || 'superadmin@tinyminds.com';
+  const superAdminUsername = process.env.SUPER_ADMIN_USERNAME || 'superadmin';
+  const superAdminFullName = process.env.SUPER_ADMIN_FULL_NAME || 'Super Admin';
+
   const adminPassword = process.env.ADMIN_PASSWORD || 'adminpassword';
+  const adminEmail = process.env.ADMIN_EMAIL || 'admin@tinyminds.com';
+  const adminUsername = process.env.ADMIN_USERNAME || 'admin';
+  const adminFullName = process.env.ADMIN_FULL_NAME || 'Institution Admin';
 
   const hashedSuperAdminPassword = await bcrypt.hash(superAdminPassword, 10);
   const hashedAdminPassword = await bcrypt.hash(adminPassword, 10);
@@ -20,16 +27,17 @@ async function main() {
   console.log('Seeding data...');
 
   const superAdmin = await prisma.user.upsert({
-    where: { email: 'superadmin@tinyminds.com' },
+    where: { email: superAdminEmail },
     update: {},
     create: {
-      email: 'superadmin@tinyminds.com',
-      username: 'superadmin',
-      fullName: 'Super Admin',
+      email: superAdminEmail,
+      username: superAdminUsername,
+      fullName: superAdminFullName,
       password: hashedSuperAdminPassword,
       role: UserRole.SUPER_ADMIN,
     },
   });
+  console.log(`Super admin with this email ${superAdminEmail} added`);
 
   await prisma.adminProfile.upsert({
     where: { userId: superAdmin.id },
@@ -50,16 +58,17 @@ async function main() {
   });
 
   const admin = await prisma.user.upsert({
-    where: { email: 'admin@tinyminds.com' },
+    where: { email: adminEmail },
     update: {},
     create: {
-      email: 'admin@tinyminds.com',
-      username: 'admin',
-      fullName: 'Institution Admin',
+      email: adminEmail,
+      username: adminUsername,
+      fullName: adminFullName,
       password: hashedAdminPassword,
       role: UserRole.ADMIN,
     },
   });
+  console.log(`Admin with this email ${adminEmail} added`);
 
   await prisma.adminProfile.upsert({
     where: { userId: admin.id },
