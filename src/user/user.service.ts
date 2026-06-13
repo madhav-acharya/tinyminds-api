@@ -187,6 +187,11 @@ export class UserService {
       include: {
         user: true,
         grade: true,
+        institutions: {
+          include: {
+            institution: true,
+          },
+        },
       },
       orderBy: { user: { createdAt: 'desc' } },
     });
@@ -198,6 +203,7 @@ export class UserService {
       progress: 0,
       streak: 0,
       nextGoal: 'Set a learning goal',
+      institution: child.institutions?.find(i => i.status === 'ACCEPTED')?.institution?.name || undefined,
     }));
   }
 
