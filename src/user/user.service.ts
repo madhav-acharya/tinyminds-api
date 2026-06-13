@@ -138,18 +138,49 @@ export class UserService {
     const tempUsername = `${childHandle}-${randomBytes(3).toString('hex')}`;
     const tempPassword = randomBytes(12).toString('hex');
 
+    let gradeId: string | undefined = undefined;
+    if (dto.grade?.trim()) {
+      const gradeName = dto.grade.trim();
+      let grade = await this.prisma.grade.findFirst({
+        where: {
+          name: { equals: gradeName, mode: 'insensitive' },
+          institutionId: null,
+        },
+      });
+
+      if (!grade) {
+        grade = await this.prisma.grade.create({
+          data: {
+            name: gradeName,
+            institutionId: null,
+          },
+        });
+      }
+      gradeId = grade.id;
+    }
+
     const child = await this.create({
       fullName: dto.fullName,
       username: tempUsername,
       password: tempPassword,
       role: UserRole.LEARNER,
       parentId: parentProfile.id,
+      gradeId,
     });
 
+    const learnerProfile = await this.prisma.learnerProfile.findUnique({
+      where: { userId: child.id },
+      include: { grade: true },
+    });
+
+    if (!learnerProfile) {
+      throw new BadRequestException('Failed to create learner profile');
+    }
+
     return {
-      id: child.id,
+      id: learnerProfile.id,
       name: child.fullName,
-      grade: dto.grade?.trim() || 'Learner',
+      grade: learnerProfile.grade?.name || 'Learner',
       progress: 0,
       streak: 0,
       nextGoal: dto.nextGoal?.trim() || 'Set a learning goal',
@@ -179,6 +210,52 @@ export class UserService {
       streak: 0,
       nextGoal: 'Set a learning goal',
     }));
+  }
+
+  async findSwitchTargetForUser(activeUserId: string, targetRole: UserRole, learnerProfileId?: string) {
+    if (targetRole === UserRole.LEARNER) {
+      const parentProfile = await this.prisma.parentProfile.findUnique({
+        where: { userId: activeUserId },
+      });
+
+      if (!parentProfile) {
+        throw new BadRequestException('Only parent accounts can switch to learner view');
+      }
+
+      const learnerProfile = await this.prisma.learnerProfile.findFirst({
+        where: {
+          parentId: parentProfile.id,
+          ...(learnerProfileId ? { id: learnerProfileId } : {}),
+        },
+        include: { user: true },
+        orderBy: { user: { createdAt: 'desc' } },
+      });
+
+      if (!learnerProfile?.user) {
+        throw new BadRequestException('No learner profile found for this parent');
+      }
+
+      return learnerProfile.user;
+    }
+
+    if (targetRole === UserRole.PARENT) {
+      const learnerProfile = await this.prisma.learnerProfile.findUnique({
+        where: { userId: activeUserId },
+        include: {
+          parent: {
+            include: { user: true },
+          },
+        },
+      });
+
+      if (!learnerProfile?.parent?.user) {
+        throw new BadRequestException('Only learner accounts can switch to parent view');
+      }
+
+      return learnerProfile.parent.user;
+    }
+
+    throw new BadRequestException('Unsupported target role for profile switching');
   }
 
   async findOne(id: string) {

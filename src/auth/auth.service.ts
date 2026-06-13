@@ -11,6 +11,8 @@ import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { UserRole } from '../common/enums/user-role.enum';
 import { ActiveUserData } from '../common/interfaces/active-user.interface';
+import type { Request } from 'express';
+import { SwitchProfileDto } from './dto/switch-profile.dto';
 import { PrismaService } from '../prisma.service';
 
 @Injectable()
@@ -79,6 +81,17 @@ export class AuthService {
   async logout(token: string) {
     this.jwtBlacklist.add(token);
     return { success: true, message: 'Logged out successfully' };
+  }
+
+  async switchProfile(request: Request, dto: SwitchProfileDto) {
+    const activeUser = request['user'] as ActiveUserData;
+    const targetUser = await this.userService.findSwitchTargetForUser(
+      activeUser.sub,
+      dto.targetRole,
+      dto.learnerProfileId,
+    );
+
+    return await this.generateTokens(targetUser);
   }
 
   isTokenBlacklisted(token: string): boolean {

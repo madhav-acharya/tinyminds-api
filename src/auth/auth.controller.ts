@@ -13,6 +13,7 @@ import { RegisterDto } from './dto/register.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { AuthGuard } from '../common/guards/auth.guard';
 import type { Request } from 'express';
+import { SwitchProfileDto } from './dto/switch-profile.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -40,5 +41,12 @@ export class AuthController {
   logout(@Req() request: Request) {
     const [type, token] = request.headers.authorization?.split(' ') ?? [];
     return this.authService.logout(token);
+  }
+
+  @UseGuards(AuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @Post('switch-profile')
+  switchProfile(@Req() request: Request, @Body() dto: SwitchProfileDto) {
+    return this.authService.switchProfile(request, dto);
   }
 }
