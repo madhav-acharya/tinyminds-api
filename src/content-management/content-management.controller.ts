@@ -29,9 +29,12 @@ export class ContentManagementController {
   constructor(private readonly service: ContentManagementService) {}
 
   // Content Endpoints
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TEACHER)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TEACHER, UserRole.OWNER)
   @Post('content')
-  createContent(@Body() dto: CreateContentDto, @ActiveUser() user: ActiveUserData) {
+  createContent(
+    @Body() dto: CreateContentDto,
+    @ActiveUser() user: ActiveUserData,
+  ) {
     return this.service.createContent(dto, user);
   }
 
@@ -80,7 +83,10 @@ export class ContentManagementController {
 
   @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TEACHER)
   @Patch('questions/:id')
-  updateQuestion(@Param('id') id: string, @Body() dto: UpdateContentQuestionDto) {
+  updateQuestion(
+    @Param('id') id: string,
+    @Body() dto: UpdateContentQuestionDto,
+  ) {
     return this.service.updateQuestion(id, dto);
   }
 

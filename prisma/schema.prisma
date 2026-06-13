@@ -409,7 +409,7 @@ model Asset3D {
 
   options       QuestionOption[]
   institution   Institution?     @relation(fields: [institutionId], references: [id])
-  institutionId String?
+  institutionId String?          @map("institution_id")
 
   @@map("asset_3d")
   @@schema("content")

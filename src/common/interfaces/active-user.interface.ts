@@ -4,4 +4,5 @@ export interface ActiveUserData {
   sub: string;
   email: string;
   role: UserRole;
+  institutionId?: string | null;
 }
