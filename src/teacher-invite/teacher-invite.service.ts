@@ -90,4 +90,11 @@ export class TeacherInviteService {
       },
     });
   }
+
+  async getInvites(institutionId: string) {
+    return this.prisma.teacherInvite.findMany({
+      where: { institutionId },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
 }
