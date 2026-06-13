@@ -1,16 +1,12 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { PaginatedResponse } from '../common/interfaces/api-response.interface';
-import {
-  CreateContentDto,
-  UpdateContentDto,
-  FindAllContentDto,
-} from './dto/content.dto';
-import {
-  CreateContentQuestionDto,
-  UpdateContentQuestionDto,
-  FindAllContentQuestionDto,
-} from './dto/question.dto';
+import { CreateContentDto } from './dto/create-content.dto';
+import { UpdateContentDto } from './dto/update-content.dto';
+import { FindAllContentDto } from './dto/find-all-content.dto';
+import { CreateContentQuestionDto } from './dto/create-question.dto';
+import { UpdateContentQuestionDto } from './dto/update-question.dto';
+import { FindAllContentQuestionDto } from './dto/find-all-question.dto';
 
 @Injectable()
 export class ContentManagementService {
@@ -18,8 +14,27 @@ export class ContentManagementService {
 
   // Content Methods
   async createContent(createContentDto: CreateContentDto) {
+    const { questions, ...contentData } = createContentDto;
     return this.prisma.content.create({
-      data: createContentDto as any,
+      data: {
+        ...(contentData as any),
+        questions: questions
+          ? {
+              create: questions.map((q) => ({
+                ...q,
+                options: q.options ? { create: q.options } : undefined,
+              })),
+            }
+          : undefined,
+      } as any,
+      include: {
+        questions: {
+          include: {
+            options: { orderBy: { sortOrder: 'asc' } },
+          },
+          orderBy: { sortOrder: 'asc' },
+        },
+      },
     });
   }
 
@@ -105,9 +120,37 @@ export class ContentManagementService {
 
   async updateContent(id: string, updateContentDto: UpdateContentDto) {
     await this.findOneContent(id);
-    return this.prisma.content.update({
-      where: { id },
-      data: updateContentDto as any,
+    const { questions, ...contentData } = updateContentDto;
+
+    return this.prisma.$transaction(async (tx: any) => {
+      if (questions) {
+        await tx.contentQuestion.deleteMany({
+          where: { contentId: id },
+        });
+      }
+
+      return tx.content.update({
+        where: { id },
+        data: {
+          ...(contentData as any),
+          questions: questions
+            ? {
+                create: questions.map((q) => ({
+                  ...q,
+                  options: q.options ? { create: q.options } : undefined,
+                })),
+              }
+            : undefined,
+        } as any,
+        include: {
+          questions: {
+            include: {
+              options: { orderBy: { sortOrder: 'asc' } },
+            },
+            orderBy: { sortOrder: 'asc' },
+          },
+        },
+      });
     });
   }
 
