@@ -9,9 +9,9 @@ export class CreateLearnerInviteDto {
   @IsString()
   learnerUsername: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsEmail()
-  parentEmail: string;
+  parentEmail?: string;
 
   @IsOptional()
   @IsString()
