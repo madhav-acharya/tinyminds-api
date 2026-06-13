@@ -1,0 +1,113 @@
+@baseUrl = http://localhost:3000
+@authToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1MzA1Mzk0ZS0zYmIzLTQwMDAtODczMy01OGRiNzE0MmVjZjQiLCJlbWFpbCI6ImFkbWluQHRpbnltaW5kcy5jb20iLCJyb2xlIjoiQURNSU4iLCJpYXQiOjE3ODEzMjk5MjQsImV4cCI6MTc4MTMzMzUyNH0.uBUr8SvCXl-urFyg-z2ktOaKIzh1gXjlplMSWraQ1xo
+@moduleId = 5d446630-e10a-46c4-9a51-03c1c6e4ed3d
+@contentId = 55597915-92de-4273-9afb-4bdb46e7153c
+
+### Auth: Login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@tinyminds.com",
+  "password": "adminpassword"
+}
+
+### Module: Create
+POST {{baseUrl}}/module
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "title": "Science Module",
+  "description": "Basic science for beginners",
+  "scope": "PUBLIC",
+  "isPublished": true
+}
+
+### Module: Get All
+GET {{baseUrl}}/module
+Authorization: Bearer {{authToken}}
+
+### Content: Create with Questions
+POST {{baseUrl}}/content-management/content
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "title": "Introduction to NestJS",
+  "description": "Learn the basics of NestJS framework",
+  "body": "NestJS is a progressive Node.js framework...",
+  "type": "REGULAR",
+  "status": "PUBLISHED",
+  "moduleId": "{{moduleId}}",
+  "questions": [
+    {
+      "title": "What is NestJS?",
+      "instruction": "Select the correct option",
+      "type": "MULTIPLE_CHOICE",
+      "sortOrder": 1,
+      "points": 10,
+      "options": [
+        { "text": "A framework", "isCorrect": true, "sortOrder": 1 },
+        { "text": "A library", "isCorrect": false, "sortOrder": 2 }
+      ]
+    },
+    {
+      "title": "Is NestJS built with TypeScript?",
+      "type": "TRUE_FALSE",
+      "sortOrder": 2,
+      "points": 5,
+      "options": [
+        { "text": "True", "isCorrect": true, "sortOrder": 1 },
+        { "text": "False", "isCorrect": false, "sortOrder": 2 }
+      ]
+    }
+  ]
+}
+
+### Content: Get All
+GET {{baseUrl}}/content-management/content
+Authorization: Bearer {{authToken}}
+
+### Content: Get Single
+GET {{baseUrl}}/content-management/content/{{contentId}}
+Authorization: Bearer {{authToken}}
+
+### Content: Update
+PATCH {{baseUrl}}/content-management/content/{{contentId}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "title": "Updated Introduction to NestJS"
+}
+
+### Content: Delete
+DELETE {{baseUrl}}/content-management/content/{{contentId}}
+Authorization: Bearer {{authToken}}
+
+### Questions: Create Separately
+POST {{baseUrl}}/content-management/questions
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "contentId": "{{contentId}}",
+  "title": "New Question",
+  "type": "FILL_BLANK",
+  "sortOrder": 3,
+  "points": 5
+}
+
+### Questions: Update
+PATCH {{baseUrl}}/content-management/questions/replace-with-question-id
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "title": "Updated Question Title"
+}
+
+### Questions: Delete
+DELETE {{baseUrl}}/content-management/questions/replace-with-question-id
+Authorization: Bearer {{authToken}}

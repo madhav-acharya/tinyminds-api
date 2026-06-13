@@ -1,26 +1,12 @@
-import { ContentStatus, ContentType } from '@prisma/client';
-import { Type } from 'class-transformer';
-import {
-  IsEnum,
-  IsNumber,
-  IsOptional,
-  IsString,
-  IsUUID,
-  Min,
-} from 'class-validator';
+import { IsOptional, IsString, IsEnum, IsUUID } from 'class-validator';
+import { ContentType, ContentStatus } from './create-content.dto';
 
 export class FindAllContentDto {
   @IsOptional()
-  @Type(() => Number)
-  @IsNumber()
-  @Min(1)
-  page?: number = 1;
+  page?: number;
 
   @IsOptional()
-  @Type(() => Number)
-  @IsNumber()
-  @Min(1)
-  limit?: number = 10;
+  limit?: number;
 
   @IsOptional()
   @IsString()

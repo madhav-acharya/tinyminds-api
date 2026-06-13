@@ -6,6 +6,9 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { FindAllUsersDto } from './dto/find-all-user.dto';
 import { PrismaService } from '../prisma.service';
 import { PaginatedResponse } from '../common/interfaces/api-response.interface';
+import type { Request } from 'express';
+import { CreateParentChildDto } from './dto/create-parent-child.dto';
+import { randomBytes } from 'crypto';
 
 @Injectable()
 export class UserService {
@@ -80,9 +83,18 @@ export class UserService {
       ];
     }
 
+    const include: Prisma.UserInclude = {
+      adminProfile: true,
+      teacherProfile: true,
+      parentProfile: true,
+      learnerProfile: true,
+      ownerProfile: true,
+    };
+
     const [data, total] = await Promise.all([
       this.prisma.user.findMany({
         where,
+        include,
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
@@ -109,9 +121,153 @@ export class UserService {
     });
   }
 
+  async createChild(request: Request, dto: CreateParentChildDto) {
+    const activeUser = request['user'] as { sub: string };
+    const parentProfile = await this.prisma.parentProfile.findUnique({
+      where: { userId: activeUser.sub },
+    });
+
+    if (!parentProfile) {
+      throw new BadRequestException('Parent profile not found');
+    }
+
+    const childHandle = dto.fullName
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '')
+      .slice(0, 16) || 'child';
+    const tempUsername = `${childHandle}-${randomBytes(3).toString('hex')}`;
+    const tempPassword = randomBytes(12).toString('hex');
+
+    let gradeId: string | undefined = undefined;
+    if (dto.grade?.trim()) {
+      const gradeName = dto.grade.trim();
+      let grade = await this.prisma.grade.findFirst({
+        where: {
+          name: { equals: gradeName, mode: 'insensitive' },
+          institutionId: null,
+        },
+      });
+
+      if (!grade) {
+        grade = await this.prisma.grade.create({
+          data: {
+            name: gradeName,
+            institutionId: null,
+          },
+        });
+      }
+      gradeId = grade.id;
+    }
+
+    const child = await this.create({
+      fullName: dto.fullName,
+      username: tempUsername,
+      password: tempPassword,
+      role: UserRole.LEARNER,
+      parentId: parentProfile.id,
+      gradeId,
+    });
+
+    const learnerProfile = await this.prisma.learnerProfile.findUnique({
+      where: { userId: child.id },
+      include: { grade: true },
+    });
+
+    if (!learnerProfile) {
+      throw new BadRequestException('Failed to create learner profile');
+    }
+
+    return {
+      id: learnerProfile.id,
+      name: child.fullName,
+      grade: learnerProfile.grade?.name || 'Learner',
+      progress: 0,
+      streak: 0,
+      nextGoal: dto.nextGoal?.trim() || 'Set a learning goal',
+    };
+  }
+
+  async findChildrenForParent(request: Request) {
+    const activeUser = request['user'] as { sub: string };
+    const children = await this.prisma.learnerProfile.findMany({
+      where: {
+        parent: {
+          userId: activeUser.sub,
+        },
+      },
+      include: {
+        user: true,
+        grade: true,
+      },
+      orderBy: { user: { createdAt: 'desc' } },
+    });
+
+    return children.map((child) => ({
+      id: child.id,
+      name: child.user.fullName,
+      grade: child.grade?.name || 'Learner',
+      progress: 0,
+      streak: 0,
+      nextGoal: 'Set a learning goal',
+    }));
+  }
+
+  async findSwitchTargetForUser(activeUserId: string, targetRole: UserRole, learnerProfileId?: string) {
+    if (targetRole === UserRole.LEARNER) {
+      const parentProfile = await this.prisma.parentProfile.findUnique({
+        where: { userId: activeUserId },
+      });
+
+      if (!parentProfile) {
+        throw new BadRequestException('Only parent accounts can switch to learner view');
+      }
+
+      const learnerProfile = await this.prisma.learnerProfile.findFirst({
+        where: {
+          parentId: parentProfile.id,
+          ...(learnerProfileId ? { id: learnerProfileId } : {}),
+        },
+        include: { user: true },
+        orderBy: { user: { createdAt: 'desc' } },
+      });
+
+      if (!learnerProfile?.user) {
+        throw new BadRequestException('No learner profile found for this parent');
+      }
+
+      return learnerProfile.user;
+    }
+
+    if (targetRole === UserRole.PARENT) {
+      const learnerProfile = await this.prisma.learnerProfile.findUnique({
+        where: { userId: activeUserId },
+        include: {
+          parent: {
+            include: { user: true },
+          },
+        },
+      });
+
+      if (!learnerProfile?.parent?.user) {
+        throw new BadRequestException('Only learner accounts can switch to parent view');
+      }
+
+      return learnerProfile.parent.user;
+    }
+
+    throw new BadRequestException('Unsupported target role for profile switching');
+  }
+
   async findOne(id: string) {
     const user = await this.prisma.user.findUnique({
       where: { id },
+      include: {
+        adminProfile: true,
+        teacherProfile: true,
+        parentProfile: true,
+        learnerProfile: true,
+        ownerProfile: true,
+      },
     });
 
     if (!user) {
