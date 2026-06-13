@@ -83,9 +83,18 @@ export class UserService {
       ];
     }
 
+    const include: Prisma.UserInclude = {
+      adminProfile: true,
+      teacherProfile: true,
+      parentProfile: true,
+      learnerProfile: true,
+      ownerProfile: true,
+    };
+
     const [data, total] = await Promise.all([
       this.prisma.user.findMany({
         where,
+        include,
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
@@ -252,6 +261,13 @@ export class UserService {
   async findOne(id: string) {
     const user = await this.prisma.user.findUnique({
       where: { id },
+      include: {
+        adminProfile: true,
+        teacherProfile: true,
+        parentProfile: true,
+        learnerProfile: true,
+        ownerProfile: true,
+      },
     });
 
     if (!user) {

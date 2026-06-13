@@ -6,18 +6,42 @@ import { UserRole } from '../common/enums/user-role.enum';
 import { InstitutionLearnerStatus } from '@prisma/client';
 import { LearnerInvite } from './entities/learner-invite.entity';
 import * as bcrypt from 'bcrypt';
+import { MailService } from '../mail/mail.service';
 
 @Injectable()
 export class LearnerInviteService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly mail: MailService,
+  ) {}
 
   async createInvite(createDto: CreateLearnerInviteDto): Promise<LearnerInvite> {
-    return this.prisma.learnerInvite.create({
+    const invite = await this.prisma.learnerInvite.create({
       data: {
         ...createDto,
         status: InstitutionLearnerStatus.INVITED,
       },
+      include: {
+        institution: true,
+        parent: { include: { user: true } },
+      },
     });
+
+    const parentUser = invite.parent?.user;
+    const parentEmail = parentUser?.email;
+    const parentName  = parentUser?.fullName ?? 'Parent';
+
+    if (parentEmail) {
+      await this.mail.sendLearnerInvite({
+        toEmail: parentEmail,
+        toName: parentName,
+        institutionName: invite.institution.name,
+        learnerUsername: invite.learnerUsername,
+        inviteId: invite.id,
+      });
+    }
+
+    return invite;
   }
 
   async getParentInvites(parentId: string): Promise<LearnerInvite[]> {
