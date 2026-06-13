@@ -13,6 +13,7 @@ import { ContentManagementModule } from './content-management/content-management
 import { ContentSubmissionModule } from './content-submission/content-submission.module';
 import { LearnerInviteModule } from './learner-invite/learner-invite.module';
 import { TeacherInviteModule } from './teacher-invite/teacher-invite.module';
+import { CloudinaryModule } from './cloudinary/cloudinary.module';
 import { PrismaService } from './prisma.service';
 
 @Module({
@@ -29,6 +30,7 @@ import { PrismaService } from './prisma.service';
     AuthModule,
     InstitutionLearnerModule,
     ContentSubmissionModule,
+    CloudinaryModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],
