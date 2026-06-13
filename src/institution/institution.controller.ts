@@ -47,7 +47,7 @@ export class InstitutionController {
     return this.institutionService.findOne(id);
   }
 
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.OWNER)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.OWNER, UserRole.TEACHER)
   @Get(':id/dashboard')
   getDashboardStats(@Param('id') id: string) {
     return this.institutionService.getDashboardStats(id);
