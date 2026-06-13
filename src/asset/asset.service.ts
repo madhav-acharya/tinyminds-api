@@ -19,10 +19,22 @@ export class AssetService {
    * 2. Also query Poly Pizza for fresh results.
    * 3. Return both: library (already saved) + polyResults (with `cached` flag).
    */
-  async searchAssets(query: string) {
+  async searchAssets(query: string, user: any) {
     // 1. Check our own asset library first
+    // Teacher sees their institution's assets OR public assets.
+    // Super Admins see everything (if user.role === 'SUPER_ADMIN')
+    const whereClause: any = {
+      name: { contains: query, mode: 'insensitive' },
+    };
+    if (user.role !== 'SUPER_ADMIN') {
+      whereClause.OR = [
+        { institutionId: user.institutionId },
+        { isPublic: true },
+      ];
+    }
+
     const library = await this.prisma.asset3D.findMany({
-      where: { name: { contains: query, mode: 'insensitive' } },
+      where: whereClause,
       orderBy: { createdAt: 'desc' },
       take: 12,
     });
@@ -49,26 +61,29 @@ export class AssetService {
     return { library, polyResults: annotatedPolyResults };
   }
 
-  /**
-   * Get all assets in our library (paginated).
-   */
-  async getLibrary(page = 1, limit = 20) {
+  async getLibrary(page = 1, limit = 20, user: any) {
     const skip = (page - 1) * limit;
+    
+    const whereClause: any = {};
+    if (user.role !== 'SUPER_ADMIN') {
+      whereClause.OR = [
+        { institutionId: user.institutionId },
+        { isPublic: true },
+      ];
+    }
+
     const [items, total] = await Promise.all([
       this.prisma.asset3D.findMany({
+        where: whereClause,
         orderBy: { createdAt: 'desc' },
         skip,
         take: limit,
       }),
-      this.prisma.asset3D.count(),
+      this.prisma.asset3D.count({ where: whereClause }),
     ]);
     return { items, total, page, limit };
   }
 
-  /**
-   * Save a Poly Pizza asset to Cloudinary + DB.
-   * If already saved (same sourceId), returns the existing record immediately.
-   */
   async saveAsset(data: {
     name: string;
     sourceId: string;
@@ -77,16 +92,19 @@ export class AssetService {
     authorName?: string;
     license?: string;
     attribution?: string;
-  }) {
-    // Idempotency: return existing asset if already saved
+  }, user: any) {
+    // Determine ownership
+    const institutionId = user.role === 'SUPER_ADMIN' ? null : user.institutionId;
+    const isPublic = user.role === 'SUPER_ADMIN'; // Admins save globally
+    const directory = user.role === 'SUPER_ADMIN' ? 'global' : user.institutionId;
+
+    // Idempotency: return existing asset if already saved for this institution/global
     const existing = await this.prisma.asset3D.findFirst({
-      where: { sourceId: data.sourceId },
+      where: { sourceId: data.sourceId, institutionId },
     });
     if (existing) return existing;
 
     try {
-      // Download the .glb and thumbnail as buffers from Poly Pizza
-      // (Cloudinary's remote-fetch gets 403 from their CDN, so we proxy it ourselves)
       const [glbBuffer, thumbBuffer] = await Promise.all([
         axios.get<Buffer>(data.downloadUrl, {
           responseType: 'arraybuffer',
@@ -98,11 +116,7 @@ export class AssetService {
         }).then(r => Buffer.from(r.data)),
       ]);
 
-      // Upload buffers to Cloudinary via upload_stream
-      const uploadBuffer = (
-        buffer: Buffer,
-        options: Record<string, unknown>,
-      ): Promise<any> =>
+      const uploadBuffer = (buffer: Buffer, options: Record<string, unknown>): Promise<any> =>
         new Promise((resolve, reject) => {
           const stream = cloudinary.uploader.upload_stream(options, (err, result) => {
             if (err) return reject(err);
@@ -111,22 +125,23 @@ export class AssetService {
           stream.end(buffer);
         });
 
+      const folderPrefix = institutionId ? `tinyminds/institutions/${institutionId}` : `tinyminds/global/${directory}`;
+      
       const [modelUpload, thumbUpload] = await Promise.all([
         uploadBuffer(glbBuffer, {
           resource_type: 'raw',
-          folder: 'tinyminds/3d-models',
+          folder: folderPrefix,
           public_id: `poly_${data.sourceId}`,
           overwrite: false,
         }),
         uploadBuffer(thumbBuffer, {
           resource_type: 'image',
-          folder: 'tinyminds/thumbnails',
+          folder: folderPrefix,
           public_id: `poly_${data.sourceId}_thumb`,
           overwrite: false,
         }),
       ]);
 
-      // Persist metadata in PostgreSQL
       const asset = await this.prisma.asset3D.create({
         data: {
           name: data.name,
@@ -138,6 +153,9 @@ export class AssetService {
           authorName: data.authorName,
           license: data.license,
           attribution: data.attribution,
+          institutionId,
+          isPublic,
+          directory,
         },
       });
 
@@ -145,6 +163,78 @@ export class AssetService {
     } catch (error) {
       console.error('[AssetService] Failed to save 3D asset:', error?.message ?? error);
       throw new InternalServerErrorException('Failed to upload asset to Cloudinary');
+    }
+  }
+
+  async uploadAsset(
+    body: { name: string; directory?: string },
+    modelFile: Express.Multer.File,
+    thumbnailFile: Express.Multer.File | undefined,
+    user: any,
+  ) {
+    const institutionId = user.role === 'SUPER_ADMIN' ? null : user.institutionId;
+    const isPublic = user.role === 'SUPER_ADMIN'; // Default global assets to public
+    const directory = user.role === 'SUPER_ADMIN' ? (body.directory || 'global') : user.institutionId;
+    const folderPrefix = institutionId ? `tinyminds/institutions/${institutionId}` : `tinyminds/global/${directory}`;
+    const uniqueSuffix = Date.now().toString() + Math.round(Math.random() * 1e9);
+
+    // Extract extension
+    const originalName = modelFile.originalname || 'file';
+    const lastDot = originalName.lastIndexOf('.');
+    const ext = lastDot !== -1 ? originalName.substring(lastDot + 1) : 'bin';
+
+    // Set resource type based on mimetype (images/videos vs raw files)
+    let resourceType = 'raw';
+    if (modelFile.mimetype.startsWith('image/')) resourceType = 'image';
+    if (modelFile.mimetype.startsWith('video/')) resourceType = 'video';
+
+    try {
+      const uploadBuffer = (buffer: Buffer, options: Record<string, unknown>): Promise<any> =>
+        new Promise((resolve, reject) => {
+          const stream = cloudinary.uploader.upload_stream(options, (err, result) => {
+            if (err) return reject(err);
+            resolve(result);
+          });
+          stream.end(buffer);
+        });
+
+      const uploadTasks: Promise<any>[] = [
+        uploadBuffer(modelFile.buffer, {
+          resource_type: resourceType,
+          folder: folderPrefix,
+          public_id: `manual_${uniqueSuffix}.${ext}`,
+        }),
+      ];
+
+      if (thumbnailFile) {
+        uploadTasks.push(
+          uploadBuffer(thumbnailFile.buffer, {
+            resource_type: 'image',
+            folder: folderPrefix,
+            public_id: `manual_${uniqueSuffix}_thumb`,
+          }),
+        );
+      }
+
+      const [modelUpload, thumbUpload] = await Promise.all(uploadTasks);
+
+      const asset = await this.prisma.asset3D.create({
+        data: {
+          name: body.name,
+          source: 'MANUAL',
+          modelUrl: modelUpload.secure_url,
+          thumbnailUrl: thumbUpload?.secure_url,
+          fileType: ext,
+          institutionId,
+          isPublic,
+          directory,
+        },
+      });
+
+      return asset;
+    } catch (error) {
+      console.error('[AssetService] Manual upload failed:', error?.message ?? error);
+      throw new InternalServerErrorException('Failed to manually upload asset');
     }
   }
 }
