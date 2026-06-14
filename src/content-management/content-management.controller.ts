@@ -19,6 +19,7 @@ import { FindAllContentQuestionDto } from './dto/find-all-question.dto';
 import { AuthGuard } from '../common/guards/auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
+import { Public } from '../common/decorators/public.decorator';
 import { UserRole } from '../common/enums/user-role.enum';
 import { ActiveUser } from '../common/decorators/active-user.decorator';
 import type { ActiveUserData } from '../common/interfaces/active-user.interface';
@@ -38,11 +39,13 @@ export class ContentManagementController {
     return this.service.createContent(dto, user);
   }
 
+  @Public()
   @Get('content')
   findAllContent(@Query() query: FindAllContentDto) {
     return this.service.findAllContent(query);
   }
 
+  @Public()
   @Get('content/:id')
   findOneContent(@Param('id') id: string) {
     return this.service.findOneContent(id);
