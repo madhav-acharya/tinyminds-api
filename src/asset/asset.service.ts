@@ -217,12 +217,15 @@ export class AssetService {
 
       const [modelUpload, thumbUpload] = await Promise.all(uploadTasks);
 
+      const isImage = modelFile.mimetype.startsWith('image/');
+      const thumbnailUrl = thumbUpload?.secure_url ?? (isImage ? modelUpload.secure_url : null);
+
       const asset = await this.prisma.asset3D.create({
         data: {
           name: body.name,
           source: 'MANUAL',
           modelUrl: modelUpload.secure_url,
-          thumbnailUrl: thumbUpload?.secure_url,
+          thumbnailUrl,
           fileType: ext,
           institutionId,
           isPublic,

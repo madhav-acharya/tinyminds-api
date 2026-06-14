@@ -99,17 +99,6 @@ export class AuthService {
   }
 
   private async generateTokens(user: any) {
-    const payload: ActiveUserData = {
-      sub: user.id,
-      email: user.email,
-      role: user.role,
-    };
-
-    const [accessToken, refreshToken] = await Promise.all([
-      this.jwtService.signAsync(payload, { expiresIn: '1h' }),
-      this.jwtService.signAsync({ sub: user.id }, { expiresIn: '7d' }),
-    ]);
-
     const { password, ...userData } = user;
 
     let institutionId: string | null = null;
@@ -129,6 +118,18 @@ export class AuthService {
       });
       institutionId = adminProfile?.institutionId ?? null;
     }
+
+    const payload: ActiveUserData = {
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+      institutionId,
+    };
+
+    const [accessToken, refreshToken] = await Promise.all([
+      this.jwtService.signAsync(payload, { expiresIn: '1h' }),
+      this.jwtService.signAsync({ sub: user.id }, { expiresIn: '7d' }),
+    ]);
 
     return {
       accessToken,
